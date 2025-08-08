@@ -12,15 +12,14 @@ import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
 const BasAnalysisChatbotInputSchema = z.object({
-  pdfDataUri: z
-    .string()
+  pdfDataUris: z.array(z.string())
     .describe(
-      "The original PDF document as a data URI. This is used for verification if the user questions the accuracy of the extracted data."
+      "The original PDF documents as data URIs. This is used for verification if the user questions the accuracy of the extracted data."
     ),
   financialData: z
     .string()
     .describe('Financial transactions data extracted from uploaded PDFs.'),
-  userQuery: z.string().describe('The user\s query or feedback.'),
+  userQuery: z.string().describe('The user’s query or feedback.'),
   conversationHistory: z.array(z.object({
     role: z.enum(['user', 'bot']),
     content: z.string(),
@@ -29,7 +28,7 @@ const BasAnalysisChatbotInputSchema = z.object({
 export type BasAnalysisChatbotInput = z.infer<typeof BasAnalysisChatbotInputSchema>;
 
 const BasAnalysisChatbotOutputSchema = z.object({
-  response: z.string().describe('The chatbot\s response to the user query.'),
+  response: z.string().describe('The chatbot’s response to the user query.'),
 });
 export type BasAnalysisChatbotOutput = z.infer<typeof BasAnalysisChatbotOutputSchema>;
 
@@ -53,15 +52,17 @@ const prompt = ai.definePrompt({
   4. Apply corrections based on user feedback to ensure accurate BAS calculations.
   5. If the user questions the accuracy of a transaction, refer to the original document provided to verify the information.
 
-  Original Document:
-  {{media url=pdfDataUri}}
+  Original Documents:
+  {{#each pdfDataUris}}
+    {{media url=this}}
+  {{/each}}
 
   Extracted Financial Data:
   {{{financialData}}}
 
   Conversation History:
   {{#each conversationHistory}}
-    {{#if (eq this.role "user")}}
+    {{#if (this.role == "user")}}
       User: {{{this.content}}}
     {{else}}
       Bot: {{{this.content}}}
