@@ -15,7 +15,7 @@ const ExtractFinancialDataInputSchema = z.object({
   pdfDataUri: z
     .string()
     .describe(
-      "A PDF document containing financial transactions, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
+      "A PDF document containing financial transactions, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'"
     ),
 });
 export type ExtractFinancialDataInput = z.infer<typeof ExtractFinancialDataInputSchema>;
@@ -52,7 +52,7 @@ const prompt = ai.definePrompt({
 
   Return the extracted transactions in a structured JSON format.
   Make sure that date is in YYYY-MM-DD format, amount is a number and all fields conform to the schema.
-  If any transaction is incomplete or missing required fields, you must omit it from the output array of transactions.
+  It is critical that you only include transactions for which you could extract all the required fields (date, description, amount, category). If any of these fields are missing for a transaction, you MUST omit the entire transaction from the output. Do not include partial transactions.
 `,
 });
 
