@@ -12,6 +12,11 @@ import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
 const BasAnalysisChatbotInputSchema = z.object({
+  pdfDataUri: z
+    .string()
+    .describe(
+      "The original PDF document as a data URI. This is used for verification if the user questions the accuracy of the extracted data."
+    ),
   financialData: z
     .string()
     .describe('Financial transactions data extracted from uploaded PDFs.'),
@@ -46,12 +51,17 @@ const prompt = ai.definePrompt({
   2. Answer user questions about the data.
   3. Ask clarifying questions to better understand the user's needs.
   4. Apply corrections based on user feedback to ensure accurate BAS calculations.
+  5. If the user questions the accuracy of a transaction, refer to the original document provided to verify the information.
 
-  Financial Data: {{{financialData}}}
+  Original Document:
+  {{media url=pdfDataUri}}
+
+  Extracted Financial Data:
+  {{{financialData}}}
 
   Conversation History:
   {{#each conversationHistory}}
-    {{#if (this.role == "user")}}
+    {{#if (eq this.role "user")}}
       User: {{{this.content}}}
     {{else}}
       Bot: {{{this.content}}}

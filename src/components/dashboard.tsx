@@ -33,6 +33,7 @@ type BasCalculationsData = {
 
 export default function Dashboard() {
   const [step, setStep] = useState<'uploading' | 'analyzing' | 'ready'>('uploading');
+  const [pdfDataUri, setPdfDataUri] = useState<string | null>(null);
   const [transactions, setTransactions] = useState<Transaction[] | null>(null);
   const [conversation, setConversation] = useState<ConversationMessage[]>([]);
   const [isChatLoading, setIsChatLoading] = useState(false);
@@ -46,14 +47,16 @@ export default function Dashboard() {
     setStep('analyzing');
     setTransactions(null);
     setConversation([]);
+    setPdfDataUri(null);
 
     try {
       const reader = new FileReader();
       reader.readAsDataURL(file);
       reader.onload = async () => {
-        const pdfDataUri = reader.result as string;
+        const dataUri = reader.result as string;
+        setPdfDataUri(dataUri);
         try {
-          const result = await extractFinancialData({ pdfDataUri });
+          const result = await extractFinancialData({ pdfDataUri: dataUri });
           if (result && result.transactions) {
             setTransactions(result.transactions);
             setStep('ready');
@@ -96,7 +99,7 @@ export default function Dashboard() {
   };
   
   const handleSendMessage = useCallback(async (message: string) => {
-    if (!message.trim() || !transactions) return;
+    if (!message.trim() || !transactions || !pdfDataUri) return;
 
     const newConversation: ConversationMessage[] = [...conversation, { role: 'user', content: message }];
     setConversation(newConversation);
@@ -105,6 +108,7 @@ export default function Dashboard() {
     try {
       const financialData = JSON.stringify(transactions, null, 2);
       const result = await basAnalysisChatbot({
+        pdfDataUri,
         financialData,
         userQuery: message,
         conversationHistory: conversation,
@@ -124,7 +128,7 @@ export default function Dashboard() {
     } finally {
       setIsChatLoading(false);
     }
-  }, [conversation, transactions, toast]);
+  }, [conversation, transactions, toast, pdfDataUri]);
 
   const { financialSummary, basCalculations } = useMemo(() => {
     if (!transactions) return { financialSummary: null, basCalculations: null };
