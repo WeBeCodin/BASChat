@@ -52,6 +52,7 @@ const prompt = ai.definePrompt({
 
   Return the extracted transactions in a structured JSON format.
   Make sure that date is in YYYY-MM-DD format, amount is a number and all fields conform to the schema.
+  If any transaction is incomplete or missing required fields, you must omit it from the output array of transactions.
 `,
 });
 
