@@ -1,14 +1,15 @@
 'use client';
 
-import type { ExtractFinancialDataOutput, Transaction } from '@/ai/schemas';
+import type { RawTransaction, Transaction } from '@/ai/schemas';
 import { basAnalysisChatbot } from '@/ai/flows/bas-analysis-chatbot';
 import { extractFinancialData } from '@/ai/flows/extract-financial-data';
+import { categorizeTransactions } from '@/ai/flows/categorize-transactions';
 import React, { useState, useMemo, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { UploadCloud, LoaderCircle, FilePlus2 } from 'lucide-react';
+import { UploadCloud, LoaderCircle, FilePlus2, Building, ShoppingCart, Wrench } from 'lucide-react';
 import FinancialSummary from './financial-summary';
 import TransactionsTable from './transactions-table';
 import ChatPanel from './chat-panel';
@@ -33,31 +34,36 @@ type BasCalculationsData = {
 type DocumentInsights = {
   pageCount: number;
   transactionCount: number;
-}
+};
+
+type AppStep = 'uploading' | 'extracting' | 'selecting_industry' | 'categorizing' | 'ready';
+
+const industries = [
+  { name: 'Construction', icon: Wrench },
+  { name: 'Retail (Cafe/Restaurant)', icon: ShoppingCart },
+  { name: 'Professional Services', icon: Building },
+];
 
 export default function Dashboard() {
-  const [step, setStep] = useState<'uploading' | 'analyzing' | 'ready'>('uploading');
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [transactions, setTransactions] = useState<Transaction[] | null>(null);
+  const [step, setStep] = useState<AppStep>('uploading');
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [rawTransactions, setRawTransactions] = useState<RawTransaction[] | null>(null);
+  const [categorizedTransactions, setCategorizedTransactions] = useState<Transaction[] | null>(null);
   const [documentInsights, setDocumentInsights] = useState<DocumentInsights | null>(null);
   const [conversation, setConversation] = useState<ConversationMessage[]>([]);
   const [isChatLoading, setIsChatLoading] = useState(false);
   const { toast } = useToast();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
-  const additionalFileInputRef = React.useRef<HTMLInputElement>(null);
 
-  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>, isAdditional: boolean = false) => {
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    if (!isAdditional) {
-      setStep('analyzing');
-      setTransactions(null);
-      setConversation([]);
-      setDocumentInsights(null);
-    } else {
-      setIsAnalyzing(true);
-    }
+    setStep('extracting');
+    setRawTransactions(null);
+    setCategorizedTransactions(null);
+    setConversation([]);
+    setDocumentInsights(null);
 
     try {
       const reader = new FileReader();
@@ -66,48 +72,27 @@ export default function Dashboard() {
         const dataUri = reader.result as string;
         try {
           const result = await extractFinancialData({ pdfDataUri: dataUri });
-          if (result) {
-            setTransactions(prev => [...(prev || []), ...result.transactions]);
-            setDocumentInsights(prev => ({
-              pageCount: (prev?.pageCount || 0) + result.pageCount,
-              transactionCount: (prev?.transactionCount || 0) + result.transactionCount,
-            }));
-
-            if (!isAdditional) {
-               setStep('ready');
-               setConversation([
-                {
-                  role: 'bot',
-                  content:
-                    "I've analyzed your document. Here is a summary of your financial data. How can I help you with your BAS analysis?",
-                },
-              ]);
-            } else {
-               toast({
-                title: 'Additional Document Analyzed',
-                description: 'New transactions have been added.',
-              });
-            }
+          if (result && result.transactions.length > 0) {
+            setRawTransactions(result.transactions);
+            setDocumentInsights({
+              pageCount: result.pageCount,
+              transactionCount: result.transactionCount,
+            });
+            setStep('selecting_industry');
           } else {
-            throw new Error('No data found in the new document.');
+            throw new Error('No transactions found in the document.');
           }
         } catch (error) {
           console.error('Error extracting financial data:', error);
           toast({
             variant: 'destructive',
-            title: 'Analysis Failed',
+            title: 'Extraction Failed',
             description: 'Could not extract financial data from the PDF.',
           });
-          if (!isAdditional) {
-            setStep('uploading');
-          }
-        } finally {
-           if(isAdditional) setIsAnalyzing(false);
+          setStep('uploading');
         }
       };
-      reader.onerror = (error) => {
-        throw error;
-      };
+      reader.onerror = (error) => { throw error; };
     } catch (error) {
       console.error('File processing error:', error);
       toast({
@@ -115,25 +100,51 @@ export default function Dashboard() {
         title: 'File Error',
         description: 'There was an issue processing your file.',
       });
-      if (!isAdditional) {
-       setStep('uploading');
-      } else {
-        setIsAnalyzing(false);
-      }
+      setStep('uploading');
     }
-     // Reset file input
      if(event.target) event.target.value = '';
+  };
+
+  const handleIndustrySelect = async (industry: string) => {
+    if (!rawTransactions) return;
+    
+    setStep('categorizing');
+
+    try {
+      const result = await categorizeTransactions({ rawTransactions, industry });
+      if (result && result.transactions.length > 0) {
+        setCategorizedTransactions(result.transactions);
+        setStep('ready');
+        setConversation([
+            {
+                role: 'bot',
+                content:
+                "I've analyzed and categorized your transactions based on your industry. Here is a summary. How can I help you with your BAS analysis?",
+            },
+        ]);
+      } else {
+         throw new Error('Failed to categorize transactions.');
+      }
+    } catch (error) {
+      console.error('Error categorizing transactions:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Categorization Failed',
+        description: 'Could not categorize the financial data.',
+      });
+      setStep('selecting_industry');
+    }
   };
   
   const handleSendMessage = useCallback(async (message: string) => {
-    if (!message.trim() || !transactions || !documentInsights) return;
+    if (!message.trim() || !categorizedTransactions || !documentInsights) return;
 
     const newConversation: ConversationMessage[] = [...conversation, { role: 'user', content: message }];
     setConversation(newConversation);
     setIsChatLoading(true);
 
     try {
-      const financialData = JSON.stringify(transactions, null, 2);
+      const financialData = JSON.stringify(categorizedTransactions, null, 2);
       const result = await basAnalysisChatbot({
         documentInsights,
         financialData,
@@ -155,13 +166,13 @@ export default function Dashboard() {
     } finally {
       setIsChatLoading(false);
     }
-  }, [conversation, transactions, toast, documentInsights]);
+  }, [conversation, categorizedTransactions, toast, documentInsights]);
 
   const { financialSummary, basCalculations } = useMemo(() => {
-    if (!transactions) return { financialSummary: null, basCalculations: null };
+    if (!categorizedTransactions) return { financialSummary: null, basCalculations: null };
 
-    const income = transactions.filter(t => t.category === 'Income').reduce((acc, t) => acc + t.amount, 0);
-    const expenses = transactions.filter(t => t.category === 'Expenses').reduce((acc, t) => acc + t.amount, 0);
+    const income = categorizedTransactions.filter(t => t.category === 'Income').reduce((acc, t) => acc + t.amount, 0);
+    const expenses = categorizedTransactions.filter(t => t.category === 'Expenses').reduce((acc, t) => acc + t.amount, 0);
     const profit = income - expenses;
     
     const summary: FinancialSummaryData = { income, expenses, profit };
@@ -173,23 +184,18 @@ export default function Dashboard() {
     const bas: BasCalculationsData = { g1, '1a': gstOnSales, '1b': gstOnPurchases };
 
     return { financialSummary: summary, basCalculations: bas };
-  }, [transactions]);
+  }, [categorizedTransactions]);
   
   const handleUploadClick = () => {
     fileInputRef.current?.click();
   };
-  
-  const handleAdditionalUploadClick = () => {
-    additionalFileInputRef.current?.click();
-  };
 
-
-  if (step === 'uploading' || (step === 'analyzing' && !isAnalyzing)) {
-    return (
-      <Card className="w-full max-w-2xl mx-auto flex-1 flex items-center justify-center border-2 border-dashed">
-        <CardContent className="text-center p-8">
-          {step === 'uploading' ? (
-            <>
+  const renderStepContent = () => {
+    switch(step) {
+      case 'uploading':
+        return (
+          <Card className="w-full max-w-2xl mx-auto flex-1 flex items-center justify-center border-2 border-dashed">
+            <CardContent className="text-center p-8">
               <UploadCloud className="mx-auto h-12 w-12 text-muted-foreground" />
               <CardTitle className="mt-4">Upload Your Financial Documents</CardTitle>
               <CardDescription className="mt-2">
@@ -206,56 +212,66 @@ export default function Dashboard() {
                 <UploadCloud className="mr-2 h-4 w-4" />
                 Upload PDF
               </Button>
-            </>
-          ) : (
-            <>
+            </CardContent>
+          </Card>
+        );
+      case 'extracting':
+      case 'categorizing':
+        return (
+          <Card className="w-full max-w-2xl mx-auto flex-1 flex items-center justify-center border-2 border-dashed">
+            <CardContent className="text-center p-8">
               <LoaderCircle className="mx-auto h-12 w-12 animate-spin text-primary" />
-              <CardTitle className="mt-4">Analyzing Document...</CardTitle>
+              <CardTitle className="mt-4">
+                {step === 'extracting' ? 'Extracting Transactions...' : 'Categorizing Transactions...'}
+              </CardTitle>
               <CardDescription className="mt-2">
-                Our AI is extracting and categorizing your financial data. This may take a moment.
+                {step === 'extracting'
+                  ? 'Our AI is extracting your financial data. This may take a moment.'
+                  : 'Applying industry logic to categorize your transactions.'
+                }
               </CardDescription>
-            </>
-          )}
-        </CardContent>
-      </Card>
-    );
+            </CardContent>
+          </Card>
+        );
+      case 'selecting_industry':
+        return (
+          <Card className="w-full max-w-2xl mx-auto flex-1 flex items-center justify-center">
+            <CardContent className="text-center p-8">
+                <CardTitle className="mt-4">Select Your Industry</CardTitle>
+                <CardDescription className="mt-2 mb-6">
+                    This will help us accurately categorize your transactions for BAS analysis.
+                </CardDescription>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {industries.map(industry => (
+                        <Button key={industry.name} variant="outline" className="h-20 flex-col gap-2" onClick={() => handleIndustrySelect(industry.name)}>
+                           <industry.icon className="h-6 w-6" />
+                           <span>{industry.name}</span>
+                        </Button>
+                    ))}
+                </div>
+            </CardContent>
+          </Card>
+        );
+      case 'ready':
+       return (
+        <div className="grid gap-4 md:gap-8 lg:grid-cols-2 xl:grid-cols-3 h-full">
+            <div className="xl:col-span-2 space-y-4 md:space-y-8">
+              <FinancialSummary summary={financialSummary} bas={basCalculations} />
+              <TransactionsTable transactions={categorizedTransactions} />
+            </div>
+            <div className="h-full max-h-[calc(100vh-12rem)] min-h-[500px]">
+              <ChatPanel
+                messages={conversation}
+                onSendMessage={handleSendMessage}
+                isLoading={isChatLoading}
+              />
+            </div>
+        </div>
+       );
+       default:
+        return null;
+    }
   }
 
-  return (
-    <div className="grid gap-4 md:gap-8 lg:grid-cols-2 xl:grid-cols-3 h-full">
-      <div className="xl:col-span-2 space-y-4 md:space-y-8">
-        <div className="flex justify-end">
-            <Input
-              ref={additionalFileInputRef}
-              type="file"
-              className="hidden"
-              onChange={(e) => handleFileChange(e, true)}
-              accept=".pdf"
-            />
-            <Button onClick={handleAdditionalUploadClick} disabled={isAnalyzing}>
-              {isAnalyzing ? (
-                <>
-                  <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
-                  Analyzing...
-                </>
-              ) : (
-                <>
-                  <FilePlus2 className="mr-2 h-4 w-4" />
-                  Upload Another Document
-                </>
-              )}
-            </Button>
-        </div>
-        <FinancialSummary summary={financialSummary} bas={basCalculations} />
-        <TransactionsTable transactions={transactions} />
-      </div>
-      <div className="h-full max-h-[calc(100vh-12rem)] min-h-[500px]">
-        <ChatPanel
-          messages={conversation}
-          onSendMessage={handleSendMessage}
-          isLoading={isChatLoading}
-        />
-      </div>
-    </div>
-  );
+  return renderStepContent();
 }

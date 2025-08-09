@@ -50,13 +50,45 @@ export type ExtractFinancialDataInput = z.infer<
   typeof ExtractFinancialDataInputSchema
 >;
 
+export const RawTransactionSchema = z.object({
+  date: z.string().describe('The date of the transaction (YYYY-MM-DD).'),
+  description: z.string().describe('A description of the transaction.'),
+  amount: z.number().describe('The amount of the transaction.'),
+});
+export type RawTransaction = z.infer<typeof RawTransactionSchema>;
+
+export const ExtractFinancialDataOutputSchema = z.object({
+  transactions: z
+    .array(RawTransactionSchema)
+    .describe('An array of extracted raw financial transactions.'),
+  pageCount: z.number().describe('The total number of pages in the document.'),
+  transactionCount: z
+    .number()
+    .describe(
+      'The total number of financial transactions found in the document.'
+    ),
+});
+export type ExtractFinancialDataOutput = z.infer<
+  typeof ExtractFinancialDataOutputSchema
+>;
+
+// Schemas for categorize-transactions.ts
+export const CategorizeTransactionsInputSchema = z.object({
+    rawTransactions: z.array(RawTransactionSchema).describe("An array of raw transaction data."),
+    industry: z.string().describe("The user's selected industry."),
+});
+export type CategorizeTransactionsInput = z.infer<typeof CategorizeTransactionsInputSchema>;
+
+
 export const TransactionSchema = z.object({
   date: z.string().describe('The date of the transaction (YYYY-MM-DD).'),
   description: z.string().describe('A description of the transaction.'),
   amount: z.number().describe('The amount of the transaction.'),
   category: z
     .string()
-    .describe('The category of the transaction (e.g., Income, Expenses, etc.).'),
+    .describe(
+      'The category of the transaction (e.g., Income, Expenses, etc.).'
+    ),
   subCategory: z
     .string()
     .describe(
@@ -66,20 +98,7 @@ export const TransactionSchema = z.object({
 });
 export type Transaction = z.infer<typeof TransactionSchema>;
 
-
-export const ExtractFinancialDataOutputSchema = z.object({
-  transactions: z
-    .array(TransactionSchema)
-    .describe('An array of extracted and categorized financial transactions.'),
-  pageCount: z.number().describe('The total number of pages in the document.'),
-  transactionCount: z
-    .number()
-    .describe('The total number of financial transactions found in the document.'),
+export const CategorizeTransactionsOutputSchema = z.object({
+    transactions: z.array(TransactionSchema).describe("An array of categorized financial transactions.")
 });
-export type ExtractFinancialDataOutput = z.infer<
-  typeof ExtractFinancialDataOutputSchema
->;
-
-
-// Schemas for get-document-insights.ts - REMOVED
-
+export type CategorizeTransactionsOutput = z.infer<typeof CategorizeTransactionsOutputSchema>;

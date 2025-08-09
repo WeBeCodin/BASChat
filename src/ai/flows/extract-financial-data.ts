@@ -1,7 +1,7 @@
 'use server';
 
 /**
- * @fileOverview An AI agent that extracts financial transactions from PDF documents.
+ * @fileOverview An AI agent that extracts raw financial transactions from PDF documents.
  *
  * - extractFinancialData - A function that handles the financial data extraction process.
  */
@@ -24,22 +24,20 @@ const extractionPrompt = ai.definePrompt({
   name: 'financialDataExtractionPrompt',
   input: {schema: ExtractFinancialDataInputSchema},
   output: {schema: ExtractFinancialDataOutputSchema},
-  prompt: `You are an expert financial data analyst. Your task is to extract transaction data from the provided PDF document and return it as a structured JSON object.
+  prompt: `You are an expert financial data analyst. Your task is to extract all transaction data from the provided PDF document and return it as a structured JSON object.
 
   Analyze the document and identify all financial transactions. For each transaction, you must extract the following fields:
   - date (in YYYY-MM-DD format)
   - description
   - amount
-  - category (e.g., 'Income', 'Expenses')
-  - subCategory (e.g., 'Sales', 'Rent', 'Utilities')
 
   Also, you must extract the following metadata:
   - pageCount: The total number of pages in the document.
   - transactionCount: The total number of distinct financial transactions listed in the document.
 
   **CRITICAL INSTRUCTIONS:**
-  1.  **Accuracy is paramount.** Only include transactions for which you can confidently extract all required fields.
-  2.  **Discard Incomplete Data:** If you cannot determine the date, description, amount, AND category for a specific line item, you MUST discard and completely omit that transaction from the output. Do not under any circumstances include partial or incomplete transaction records.
+  1.  **Extract Everything:** Your primary goal is to extract every single transaction. Do not omit any transaction, even if some details are ambiguous.
+  2.  **Do Not Categorize:** You MUST NOT attempt to categorize the transactions. Only extract the raw 'date', 'description', and 'amount' fields.
   3.  **Strict JSON Output:** Ensure your final output is a valid JSON object that strictly adheres to the required schema.
 
   PDF Document:
