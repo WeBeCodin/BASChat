@@ -71,6 +71,9 @@ const orchestrateFinancialDataExtraction = ai.defineFlow(
     // Phase 1
     const rawExtraction = await extractRawTextPrompt(input);
     const rawText = rawExtraction.output?.rawText ?? '';
+    if (!rawText) {
+      return { transactions: [] };
+    }
 
     // Phase 2
     const structuredData = await structureDataPrompt({ rawText });
