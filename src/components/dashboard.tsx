@@ -30,11 +30,16 @@ type BasCalculationsData = {
   '1b': number;
 };
 
+type DocumentInsights = {
+  pageCount: number;
+  transactionCount: number;
+}
+
 export default function Dashboard() {
   const [step, setStep] = useState<'uploading' | 'analyzing' | 'ready'>('uploading');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [pdfDataUris, setPdfDataUris] = useState<string[]>([]);
   const [transactions, setTransactions] = useState<Transaction[] | null>(null);
+  const [documentInsights, setDocumentInsights] = useState<DocumentInsights | null>(null);
   const [conversation, setConversation] = useState<ConversationMessage[]>([]);
   const [isChatLoading, setIsChatLoading] = useState(false);
   const { toast } = useToast();
@@ -49,7 +54,7 @@ export default function Dashboard() {
       setStep('analyzing');
       setTransactions(null);
       setConversation([]);
-      setPdfDataUris([]);
+      setDocumentInsights(null);
     } else {
       setIsAnalyzing(true);
     }
@@ -61,9 +66,13 @@ export default function Dashboard() {
         const dataUri = reader.result as string;
         try {
           const result = await extractFinancialData({ pdfDataUri: dataUri });
-          if (result && result.transactions) {
+          if (result) {
             setTransactions(prev => [...(prev || []), ...result.transactions]);
-            setPdfDataUris(prev => [...prev, dataUri]);
+            setDocumentInsights(prev => ({
+              pageCount: (prev?.pageCount || 0) + result.pageCount,
+              transactionCount: (prev?.transactionCount || 0) + result.transactionCount,
+            }));
+
             if (!isAdditional) {
                setStep('ready');
                setConversation([
@@ -80,7 +89,7 @@ export default function Dashboard() {
               });
             }
           } else {
-            throw new Error('No transactions found in the new document.');
+            throw new Error('No data found in the new document.');
           }
         } catch (error) {
           console.error('Error extracting financial data:', error);
@@ -117,7 +126,7 @@ export default function Dashboard() {
   };
   
   const handleSendMessage = useCallback(async (message: string) => {
-    if (!message.trim() || !transactions || pdfDataUris.length === 0) return;
+    if (!message.trim() || !transactions || !documentInsights) return;
 
     const newConversation: ConversationMessage[] = [...conversation, { role: 'user', content: message }];
     setConversation(newConversation);
@@ -126,7 +135,7 @@ export default function Dashboard() {
     try {
       const financialData = JSON.stringify(transactions, null, 2);
       const result = await basAnalysisChatbot({
-        pdfDataUris,
+        documentInsights,
         financialData,
         userQuery: message,
         conversationHistory: conversation,
@@ -146,7 +155,7 @@ export default function Dashboard() {
     } finally {
       setIsChatLoading(false);
     }
-  }, [conversation, transactions, toast, pdfDataUris]);
+  }, [conversation, transactions, toast, documentInsights]);
 
   const { financialSummary, basCalculations } = useMemo(() => {
     if (!transactions) return { financialSummary: null, basCalculations: null };

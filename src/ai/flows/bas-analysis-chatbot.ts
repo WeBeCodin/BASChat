@@ -14,7 +14,6 @@ import {
   BasAnalysisChatbotOutput,
 } from '@/ai/schemas';
 import {MessageData} from 'genkit';
-import {getDocumentInsights} from '@/ai/flows/get-document-insights';
 
 export async function basAnalysisChatbot(
   input: BasAnalysisChatbotInput
@@ -24,10 +23,13 @@ export async function basAnalysisChatbot(
 
 const systemPrompt = `You are a financial expert chatbot. Your primary function is to assist users with BAS (Business Activity Statement) analysis.
 
-**Your Instructions:**
+You have been provided with the following information:
+- A summary of extracted financial transactions.
+- Key insights from the original document: Page count is {{pageCount}} and total transaction count is {{transactionCount}}.
 
+**Your Instructions:**
 1.  Use the "Extracted Financial Data Summary" to answer general questions about the user's financial position.
-2.  If the user asks for specific details about the original documents themselves (e.g., page count, total number of transactions), you MUST use the \`getDocumentInsights\` tool. Pass the first available PDF data URI from the user's uploaded documents to the tool.
+2.  Use the provided page and transaction counts to answer specific questions about the source document. Do not invent or infer any other details about the original document.
 
 **Extracted Financial Data Summary:**
 {{{financialData}}}
@@ -53,9 +55,10 @@ const basAnalysisChatbotFlow = ai.defineFlow(
         system: systemPrompt,
         prompt: input.userQuery,
         history,
-        tools: [getDocumentInsights],
         input: {
           financialData: input.financialData,
+          pageCount: input.documentInsights.pageCount,
+          transactionCount: input.documentInsights.transactionCount,
         },
         output: {
           schema: BasAnalysisChatbotOutputSchema,

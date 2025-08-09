@@ -33,10 +33,14 @@ const extractionPrompt = ai.definePrompt({
   - category (e.g., 'Income', 'Expenses')
   - subCategory (e.g., 'Sales', 'Rent', 'Utilities')
 
+  Also, you must extract the following metadata:
+  - pageCount: The total number of pages in the document.
+  - transactionCount: The total number of distinct financial transactions listed in the document.
+
   **CRITICAL INSTRUCTIONS:**
   1.  **Accuracy is paramount.** Only include transactions for which you can confidently extract all required fields.
   2.  **Discard Incomplete Data:** If you cannot determine the date, description, amount, AND category for a specific line item, you MUST discard and completely omit that transaction from the output. Do not under any circumstances include partial or incomplete transaction records.
-  3.  **Strict JSON Output:** Ensure your final output is a valid JSON object that strictly adheres to the required schema, containing a single key "transactions" which is an array of transaction objects.
+  3.  **Strict JSON Output:** Ensure your final output is a valid JSON object that strictly adheres to the required schema.
 
   PDF Document:
   {{media url=pdfDataUri}}`,
@@ -52,18 +56,20 @@ const extractFinancialDataFlow = ai.defineFlow(
     try {
       const {output} = await extractionPrompt(input);
 
-      // If the model fails to produce any output or an empty transaction list,
-      // return a valid empty response.
-      if (!output || !output.transactions) {
-        return {transactions: []};
+      if (!output) {
+        return {transactions: [], pageCount: 0, transactionCount: 0};
       }
 
-      return output;
+      return {
+        transactions: output.transactions || [],
+        pageCount: output.pageCount || 0,
+        transactionCount: output.transactionCount || 0,
+      };
     } catch (error) {
       console.error('Error in extractFinancialDataFlow:', error);
-      // In case of an API error (like 503), return an empty array
+      // In case of an API error (like 503), return an empty response
       // to prevent the client from crashing.
-      return {transactions: []};
+      return {transactions: [], pageCount: 0, transactionCount: 0};
     }
   }
 );

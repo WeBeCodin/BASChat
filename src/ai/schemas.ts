@@ -9,14 +9,13 @@ import {z} from 'genkit';
 
 // Schemas for bas-analysis-chatbot.ts
 export const BasAnalysisChatbotInputSchema = z.object({
-  pdfDataUris: z
-    .array(z.string())
-    .describe(
-      'An array of the original PDF documents as data URIs. This is used by tools if the user asks for specific details about the source documents.'
-    ),
   financialData: z
     .string()
     .describe('Financial transactions data extracted from uploaded PDFs.'),
+  documentInsights: z.object({
+    pageCount: z.number(),
+    transactionCount: z.number(),
+  }),
   userQuery: z.string().describe('The user’s query or feedback.'),
   conversationHistory: z
     .array(
@@ -72,30 +71,15 @@ export const ExtractFinancialDataOutputSchema = z.object({
   transactions: z
     .array(TransactionSchema)
     .describe('An array of extracted and categorized financial transactions.'),
+  pageCount: z.number().describe('The total number of pages in the document.'),
+  transactionCount: z
+    .number()
+    .describe('The total number of financial transactions found in the document.'),
 });
 export type ExtractFinancialDataOutput = z.infer<
   typeof ExtractFinancialDataOutputSchema
 >;
 
 
-// Schemas for get-document-insights.ts
-export const GetDocumentInsightsInputSchema = z.object({
-  pdfDataUri: z
-    .string()
-    .describe(
-      "A PDF document to analyze, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'"
-    ),
-});
-export type GetDocumentInsightsInput = z.infer<
-  typeof GetDocumentInsightsInputSchema
->;
+// Schemas for get-document-insights.ts - REMOVED
 
-export const GetDocumentInsightsOutputSchema = z.object({
-  pageCount: z.number().describe('The total number of pages in the document.'),
-  transactionCount: z
-    .number()
-    .describe('The total number of financial transactions found in the document.'),
-});
-export type GetDocumentInsightsOutput = z.infer<
-  typeof GetDocumentInsightsOutputSchema
->;
