@@ -64,8 +64,16 @@ const basAnalysisChatbotFlow = ai.defineFlow(
   },
   async input => {
     const {output} = await prompt(input);
+
+    if (!output?.response) {
+      return {
+        response:
+          "I'm sorry, but I encountered an issue and can't provide a response right now. Please try again later.",
+      };
+    }
+
     return {
-      response: output!.response,
+      response: output.response,
     };
   }
 );
