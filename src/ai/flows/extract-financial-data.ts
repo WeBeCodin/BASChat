@@ -83,7 +83,10 @@ const orchestrateFinancialDataExtraction = ai.defineFlow(
 
     // Phase 3
     const finalCategorization = await categorizeTransactionsPrompt(structuredData.output);
+    if (!finalCategorization.output) {
+      return { transactions: [] };
+    }
 
-    return finalCategorization.output!;
+    return finalCategorization.output;
   }
 );
