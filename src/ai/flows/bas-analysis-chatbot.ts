@@ -48,34 +48,42 @@ const basAnalysisChatbotFlow = ai.defineFlow(
   async input => {
     const history: MessageData[] = (input.conversationHistory || []).map(
       message => ({
-        role: message.role,
+        role: message.role === 'user' ? 'user' : 'model',
         content: [{text: message.content}],
       })
     );
 
-    const {output} = await ai.generate({
-      model: 'googleai/gemini-1.5-flash-latest',
-      system: systemPrompt,
-      prompt: input.userQuery,
-      history,
-      input: {
-        financialData: input.financialData,
-        pdfDataUris: input.pdfDataUris,
-      },
-      output: {
-        schema: BasAnalysisChatbotOutputSchema,
-      },
-    });
+    try {
+      const {output} = await ai.generate({
+        model: 'googleai/gemini-1.5-flash-latest',
+        system: systemPrompt,
+        prompt: input.userQuery,
+        history,
+        input: {
+          financialData: input.financialData,
+          pdfDataUris: input.pdfDataUris,
+        },
+        output: {
+          schema: BasAnalysisChatbotOutputSchema,
+        },
+      });
 
-    if (!output?.response) {
+      if (!output?.response) {
+        return {
+          response:
+            "I'm sorry, but I encountered an issue and can't provide a response right now. Please try again later.",
+        };
+      }
+
+      return {
+        response: output.response,
+      };
+    } catch (error) {
+      console.error('Error in basAnalysisChatbotFlow:', error);
       return {
         response:
-          "I'm sorry, but I encountered an issue and can't provide a response right now. Please try again later.",
+          "I'm sorry, I'm having trouble connecting to the AI service at the moment. Please try again in a little while.",
       };
     }
-
-    return {
-      response: output.response,
-    };
   }
 );

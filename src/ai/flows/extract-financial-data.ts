@@ -49,14 +49,21 @@ const extractFinancialDataFlow = ai.defineFlow(
     outputSchema: ExtractFinancialDataOutputSchema,
   },
   async input => {
-    const {output} = await extractionPrompt(input);
+    try {
+      const {output} = await extractionPrompt(input);
 
-    // If the model fails to produce any output or an empty transaction list,
-    // return a valid empty response.
-    if (!output || !output.transactions) {
+      // If the model fails to produce any output or an empty transaction list,
+      // return a valid empty response.
+      if (!output || !output.transactions) {
+        return {transactions: []};
+      }
+
+      return output;
+    } catch (error) {
+      console.error('Error in extractFinancialDataFlow:', error);
+      // In case of an API error (like 503), return an empty array
+      // to prevent the client from crashing.
       return {transactions: []};
     }
-
-    return output;
   }
 );
