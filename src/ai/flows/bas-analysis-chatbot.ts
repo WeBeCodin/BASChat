@@ -56,7 +56,6 @@ const basAnalysisChatbotFlow = ai.defineFlow(
         tools: [getDocumentInsights],
         input: {
           financialData: input.financialData,
-          pdfDataUris: input.pdfDataUris, // Pass PDFs in the input for the tool.
         },
         output: {
           schema: BasAnalysisChatbotOutputSchema,
