@@ -13,7 +13,6 @@ import {
   BasAnalysisChatbotInput,
   BasAnalysisChatbotOutput,
 } from '@/ai/schemas';
-import {MessageData} from 'genkit';
 
 export async function basAnalysisChatbot(
   input: BasAnalysisChatbotInput
@@ -21,19 +20,31 @@ export async function basAnalysisChatbot(
   return basAnalysisChatbotFlow(input);
 }
 
-const systemPrompt = `You are a financial expert chatbot. Your primary function is to assist users with BAS (Business Activity Statement) analysis.
+const chatbotPrompt = ai.definePrompt({
+  name: 'basAnalysisChatbotPrompt',
+  input: {schema: BasAnalysisChatbotInputSchema},
+  output: {schema: BasAnalysisChatbotOutputSchema},
+  prompt: `You are a financial expert chatbot. Your primary function is to assist users with BAS (Business Activity Statement) analysis.
 
 You have been provided with the following information:
 - A summary of extracted financial transactions.
-- Key insights from the original document: Page count is {{pageCount}} and total transaction count is {{transactionCount}}.
+- Key insights from the original document: Page count is {{documentInsights.pageCount}} and total transaction count is {{documentInsights.transactionCount}}.
 
 **Your Instructions:**
 1.  Use the "Extracted Financial Data Summary" to answer general questions about the user's financial position.
 2.  Use the provided page and transaction counts to answer specific questions about the source document. Do not invent or infer any other details about the original document.
 
 **Extracted Financial Data Summary:**
-{{{financialData}}}
-`;
+{{financialData}}
+
+**Conversation History:**
+{{#each conversationHistory}}
+{{role}}: {{content}}
+{{/each}}
+
+**User Query:**
+{{userQuery}}`,
+});
 
 const basAnalysisChatbotFlow = ai.defineFlow(
   {
@@ -42,28 +53,8 @@ const basAnalysisChatbotFlow = ai.defineFlow(
     outputSchema: BasAnalysisChatbotOutputSchema,
   },
   async input => {
-    const history: MessageData[] = (input.conversationHistory || []).map(
-      message => ({
-        role: message.role === 'user' ? 'user' : 'model',
-        content: [{text: message.content}],
-      })
-    );
-
     try {
-      const {output} = await ai.generate({
-        model: 'googleai/gemini-1.5-flash-latest',
-        system: systemPrompt,
-        prompt: input.userQuery,
-        history,
-        input: {
-          financialData: input.financialData,
-          pageCount: input.documentInsights.pageCount,
-          transactionCount: input.documentInsights.transactionCount,
-        },
-        output: {
-          schema: BasAnalysisChatbotOutputSchema,
-        },
-      });
+      const {output} = await chatbotPrompt(input);
 
       if (!output?.response) {
         return {

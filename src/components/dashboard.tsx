@@ -9,7 +9,8 @@ import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { UploadCloud, LoaderCircle, FilePlus2, Building, ShoppingCart, Wrench } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { UploadCloud, LoaderCircle, FilePlus2, Building, ShoppingCart, Wrench, Cpu, Bot } from 'lucide-react';
 import FinancialSummary from './financial-summary';
 import TransactionsTable from './transactions-table';
 import ChatPanel from './chat-panel';
@@ -38,10 +39,27 @@ type DocumentInsights = {
 
 type AppStep = 'uploading' | 'extracting' | 'selecting_industry' | 'categorizing' | 'ready';
 
+type ExtractionEngine = 'ai' | 'python';
+
 const industries = [
   { name: 'Construction', icon: Wrench },
   { name: 'Retail (Cafe/Restaurant)', icon: ShoppingCart },
   { name: 'Professional Services', icon: Building },
+];
+
+const extractionEngines = [
+  { 
+    value: 'ai' as ExtractionEngine, 
+    label: 'AI-Based Extraction', 
+    description: 'Fast extraction using Google AI',
+    icon: Bot 
+  },
+  { 
+    value: 'python' as ExtractionEngine, 
+    label: 'Python PDF Extractor', 
+    description: 'Robust extraction using PyMuPDF',
+    icon: Cpu 
+  },
 ];
 
 export default function Dashboard() {
@@ -52,8 +70,26 @@ export default function Dashboard() {
   const [documentInsights, setDocumentInsights] = useState<DocumentInsights | null>(null);
   const [conversation, setConversation] = useState<ConversationMessage[]>([]);
   const [isChatLoading, setIsChatLoading] = useState(false);
+  const [extractionEngine, setExtractionEngine] = useState<ExtractionEngine>('ai');
   const { toast } = useToast();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const extractWithPythonService = async (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await fetch('/api/extract-pdf', {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Python extraction failed');
+    }
+
+    return await response.json();
+  };
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -66,43 +102,44 @@ export default function Dashboard() {
     setDocumentInsights(null);
 
     try {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = async () => {
+      let result;
+      
+      if (extractionEngine === 'python') {
+        // Use Python microservice
+        result = await extractWithPythonService(file);
+      } else {
+        // Use existing AI extraction
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        await new Promise((resolve, reject) => {
+          reader.onload = resolve;
+          reader.onerror = reject;
+        });
         const dataUri = reader.result as string;
-        try {
-          const result = await extractFinancialData({ pdfDataUri: dataUri });
-          if (result && result.transactions.length > 0) {
-            setRawTransactions(result.transactions);
-            setDocumentInsights({
-              pageCount: result.pageCount,
-              transactionCount: result.transactionCount,
-            });
-            setStep('selecting_industry');
-          } else {
-            throw new Error('No transactions found in the document.');
-          }
-        } catch (error) {
-          console.error('Error extracting financial data:', error);
-          toast({
-            variant: 'destructive',
-            title: 'Extraction Failed',
-            description: 'Could not extract financial data from the PDF.',
-          });
-          setStep('uploading');
-        }
-      };
-      reader.onerror = (error) => { throw error; };
+        result = await extractFinancialData({ pdfDataUri: dataUri });
+      }
+
+      if (result && result.transactions.length > 0) {
+        setRawTransactions(result.transactions);
+        setDocumentInsights({
+          pageCount: result.pageCount,
+          transactionCount: result.transactionCount,
+        });
+        setStep('selecting_industry');
+      } else {
+        throw new Error('No transactions found in the document.');
+      }
     } catch (error) {
-      console.error('File processing error:', error);
+      console.error('Error extracting financial data:', error);
       toast({
         variant: 'destructive',
-        title: 'File Error',
-        description: 'There was an issue processing your file.',
+        title: 'Extraction Failed',
+        description: error instanceof Error ? error.message : 'Could not extract financial data from the PDF.',
       });
       setStep('uploading');
     }
-     if(event.target) event.target.value = '';
+
+    if(event.target) event.target.value = '';
   };
 
   const handleIndustrySelect = async (industry: string) => {
@@ -198,9 +235,32 @@ export default function Dashboard() {
             <CardContent className="text-center p-8">
               <UploadCloud className="mx-auto h-12 w-12 text-muted-foreground" />
               <CardTitle className="mt-4">Upload Your Financial Documents</CardTitle>
-              <CardDescription className="mt-2">
+              <CardDescription className="mt-2 mb-6">
                 Drag and drop your PDF files here or click to upload.
               </CardDescription>
+              
+              <div className="mb-6">
+                <CardDescription className="mb-3 text-left">Choose Extraction Engine:</CardDescription>
+                <Select value={extractionEngine} onValueChange={(value: ExtractionEngine) => setExtractionEngine(value)}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select extraction engine" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {extractionEngines.map((engine) => (
+                      <SelectItem key={engine.value} value={engine.value}>
+                        <div className="flex items-center gap-2">
+                          <engine.icon className="h-4 w-4" />
+                          <div className="flex flex-col">
+                            <span className="font-medium">{engine.label}</span>
+                            <span className="text-xs text-muted-foreground">{engine.description}</span>
+                          </div>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
               <Input
                 ref={fileInputRef}
                 type="file"
