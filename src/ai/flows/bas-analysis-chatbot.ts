@@ -28,7 +28,6 @@ const systemPrompt = `You are a financial expert chatbot. Your primary function 
 
 1.  Use the "Extracted Financial Data Summary" to answer general questions about the user's financial position.
 2.  If the user asks for specific details about the original documents themselves (e.g., page count, total number of transactions), you MUST use the \`getDocumentInsights\` tool. Pass the first available PDF data URI from the user's uploaded documents to the tool.
-3.  Be helpful and conversational. If a user's request is unclear, ask clarifying questions.
 
 **Extracted Financial Data Summary:**
 {{{financialData}}}
@@ -57,6 +56,7 @@ const basAnalysisChatbotFlow = ai.defineFlow(
         tools: [getDocumentInsights],
         input: {
           financialData: input.financialData,
+          pdfDataUris: input.pdfDataUris, // Pass PDFs in the input for the tool.
         },
         output: {
           schema: BasAnalysisChatbotOutputSchema,
