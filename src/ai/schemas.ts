@@ -12,7 +12,7 @@ export const BasAnalysisChatbotInputSchema = z.object({
   pdfDataUris: z
     .array(z.string())
     .describe(
-      'The original PDF documents as data URIs. This is used for verification if the user questions the accuracy of the extracted data.'
+      'An array of the original PDF documents as data URIs. This is used by tools if the user asks for specific details about the source documents.'
     ),
   financialData: z
     .string()
