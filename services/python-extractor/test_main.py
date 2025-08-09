@@ -4,6 +4,7 @@ from fastapi.testclient import TestClient
 from main import app
 from extractor import RobustPDFExtractor
 
+# Create test client with proper initialization
 client = TestClient(app)
 
 def test_health_check():
