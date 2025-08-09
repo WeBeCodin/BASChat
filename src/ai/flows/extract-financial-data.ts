@@ -50,13 +50,13 @@ const structureDataPrompt = ai.definePrompt({
 // Phase 3: Categorization & Refinement
 const categorizeTransactionsPrompt = ai.definePrompt({
     name: 'categorizeTransactionsPrompt',
-    input: { schema: ExtractFinancialDataOutputSchema },
+    input: { schema: z.object({ transactionsJson: z.string() }) },
     output: { schema: ExtractFinancialDataOutputSchema },
     prompt: `You are a financial expert. Review the following list of financial transactions and categorize them into appropriate industry-specific income and expense buckets.
     Refine the category and subCategory for each transaction based on its description.
 
     Transactions:
-    {{{JSON transactions}}}
+    {{{transactionsJson}}}
     `
 });
 
@@ -82,7 +82,8 @@ const orchestrateFinancialDataExtraction = ai.defineFlow(
     }
 
     // Phase 3
-    const finalCategorization = await categorizeTransactionsPrompt(structuredData.output);
+    const transactionsJson = JSON.stringify(structuredData.output.transactions);
+    const finalCategorization = await categorizeTransactionsPrompt({ transactionsJson });
     if (!finalCategorization.output) {
       return { transactions: [] };
     }
