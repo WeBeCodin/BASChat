@@ -76,3 +76,26 @@ export const ExtractFinancialDataOutputSchema = z.object({
 export type ExtractFinancialDataOutput = z.infer<
   typeof ExtractFinancialDataOutputSchema
 >;
+
+
+// Schemas for get-document-insights.ts
+export const GetDocumentInsightsInputSchema = z.object({
+  pdfDataUri: z
+    .string()
+    .describe(
+      "A PDF document to analyze, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'"
+    ),
+});
+export type GetDocumentInsightsInput = z.infer<
+  typeof GetDocumentInsightsInputSchema
+>;
+
+export const GetDocumentInsightsOutputSchema = z.object({
+  pageCount: z.number().describe('The total number of pages in the document.'),
+  transactionCount: z
+    .number()
+    .describe('The total number of financial transactions found in the document.'),
+});
+export type GetDocumentInsightsOutput = z.infer<
+  typeof GetDocumentInsightsOutputSchema
+>;
