@@ -44,7 +44,7 @@ const prompt = ai.definePrompt({
   output: {schema: ExtractFinancialDataOutputSchema},
   prompt: `You are a financial expert tasked with extracting and categorizing financial transactions from PDF documents.
 
-  Analyze the provided PDF document and extract all financial transactions. For each transaction, identify the date, description, amount, category, and sub-category (if applicable).
+  Analyze the provided PDF document and extract all financial transactions. For each transaction, you must identify the date, description, amount, and category. A sub-category is optional.
   Categorize transactions into industry-specific income and expense buckets.
 
   Here is the PDF document:
@@ -52,7 +52,8 @@ const prompt = ai.definePrompt({
 
   Return the extracted transactions in a structured JSON format.
   Make sure that date is in YYYY-MM-DD format, amount is a number and all fields conform to the schema.
-  It is critical that you only include transactions for which you could extract all the required fields (date, description, amount, category). If any of these fields are missing for a transaction, you MUST omit the entire transaction from the output. Do not include partial transactions.
+  
+  It is absolutely critical that you only include transactions for which you could extract all the required fields (date, description, amount, category). If any of these fields are missing for a transaction, you MUST discard and completely omit the entire transaction from the output. Do not ever include partial or incomplete transactions.
 `,
 });
 
