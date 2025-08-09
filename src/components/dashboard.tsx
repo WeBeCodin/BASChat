@@ -1,6 +1,6 @@
 'use client';
 
-import type { ExtractFinancialDataOutput } from '@/ai/flows/extract-financial-data';
+import type { ExtractFinancialDataOutput, Transaction } from '@/ai/schemas';
 import { basAnalysisChatbot } from '@/ai/flows/bas-analysis-chatbot';
 import { extractFinancialData } from '@/ai/flows/extract-financial-data';
 import React, { useState, useMemo, useCallback } from 'react';
@@ -13,7 +13,6 @@ import FinancialSummary from './financial-summary';
 import TransactionsTable from './transactions-table';
 import ChatPanel from './chat-panel';
 
-type Transaction = ExtractFinancialDataOutput['transactions'][0];
 type ConversationMessage = {
   role: 'user' | 'bot';
   content: string;

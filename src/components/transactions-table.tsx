@@ -1,13 +1,11 @@
 'use client';
 
-import type { ExtractFinancialDataOutput } from '@/ai/flows/extract-financial-data';
+import type { Transaction } from '@/ai/schemas';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { BarChart2 } from 'lucide-react';
-
-type Transaction = ExtractFinancialDataOutput['transactions'][0];
 
 type TransactionsTableProps = {
   transactions: Transaction[] | null;

@@ -4,33 +4,15 @@
  * @fileOverview An AI chatbot for BAS analysis.
  *
  * - basAnalysisChatbot - A function that handles the interaction with the chatbot.
- * - BasAnalysisChatbotInput - The input type for the basAnalysisChatbot function.
- * - BasAnalysisChatbotOutput - The return type for the basAnalysisChatbot function.
  */
 
 import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
-
-const BasAnalysisChatbotInputSchema = z.object({
-  pdfDataUris: z.array(z.string())
-    .describe(
-      "The original PDF documents as data URIs. This is used for verification if the user questions the accuracy of the extracted data."
-    ),
-  financialData: z
-    .string()
-    .describe('Financial transactions data extracted from uploaded PDFs.'),
-  userQuery: z.string().describe('The user’s query or feedback.'),
-  conversationHistory: z.array(z.object({
-    role: z.enum(['user', 'bot']),
-    content: z.string(),
-  })).optional().describe('Previous conversation history.'),
-});
-export type BasAnalysisChatbotInput = z.infer<typeof BasAnalysisChatbotInputSchema>;
-
-const BasAnalysisChatbotOutputSchema = z.object({
-  response: z.string().describe('The chatbot’s response to the user query.'),
-});
-export type BasAnalysisChatbotOutput = z.infer<typeof BasAnalysisChatbotOutputSchema>;
+import {
+  BasAnalysisChatbotInputSchema,
+  BasAnalysisChatbotOutputSchema,
+  BasAnalysisChatbotInput,
+  BasAnalysisChatbotOutput,
+} from '@/ai/schemas';
 
 export async function basAnalysisChatbot(input: BasAnalysisChatbotInput): Promise<BasAnalysisChatbotOutput> {
   return basAnalysisChatbotFlow(input);
@@ -62,7 +44,7 @@ const prompt = ai.definePrompt({
 
   Conversation History:
   {{#each conversationHistory}}
-    {{#if (this.role == "user")}}
+    {{#if this.role 'user'}}
       User: {{{this.content}}}
     {{else}}
       Bot: {{{this.content}}}

@@ -4,67 +4,83 @@
  * @fileOverview An AI agent that extracts financial transactions from PDF documents and categorizes them into income and expense buckets.
  *
  * - extractFinancialData - A function that handles the financial data extraction and categorization process.
- * - ExtractFinancialDataInput - The input type for the extractFinancialData function.
- * - ExtractFinancialDataOutput - The return type for the extractFinancialData function.
  */
 
 import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import {
+  ExtractFinancialDataInputSchema,
+  ExtractFinancialDataOutputSchema,
+  ExtractFinancialDataInput,
+  ExtractFinancialDataOutput
+} from '@/ai/schemas';
+import { z } from 'genkit';
 
-const ExtractFinancialDataInputSchema = z.object({
-  pdfDataUri: z
-    .string()
-    .describe(
-      "A PDF document containing financial transactions, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'"
-    ),
-});
-export type ExtractFinancialDataInput = z.infer<typeof ExtractFinancialDataInputSchema>;
-
-const TransactionSchema = z.object({
-  date: z.string().describe('The date of the transaction (YYYY-MM-DD).'),
-  description: z.string().describe('A description of the transaction.'),
-  amount: z.number().describe('The amount of the transaction.'),
-  category: z.string().describe('The category of the transaction (e.g., Income, Expenses, etc.).'),
-  subCategory: z.string().describe('The sub-category of the transaction (e.g., Sales, Rent, Utilities, etc.).').optional(),
-});
-
-const ExtractFinancialDataOutputSchema = z.object({
-  transactions: z.array(TransactionSchema).describe('An array of extracted and categorized financial transactions.'),
-});
-
-export type ExtractFinancialDataOutput = z.infer<typeof ExtractFinancialDataOutputSchema>;
 
 export async function extractFinancialData(input: ExtractFinancialDataInput): Promise<ExtractFinancialDataOutput> {
-  return extractFinancialDataFlow(input);
+  return orchestrateFinancialDataExtraction(input);
 }
 
-const prompt = ai.definePrompt({
-  name: 'extractFinancialDataPrompt',
-  input: {schema: ExtractFinancialDataInputSchema},
-  output: {schema: ExtractFinancialDataOutputSchema},
-  prompt: `You are a financial expert tasked with extracting and categorizing financial transactions from PDF documents.
-
-  Analyze the provided PDF document and extract all financial transactions. For each transaction, you must identify the date, description, amount, and category. A sub-category is optional.
-  Categorize transactions into industry-specific income and expense buckets.
-
-  Here is the PDF document:
-  {{media url=pdfDataUri}}
-
-  Return the extracted transactions in a structured JSON format.
-  Make sure that date is in YYYY-MM-DD format, amount is a number and all fields conform to the schema.
+// Phase 1: Raw Data Extraction
+const extractRawTextPrompt = ai.definePrompt({
+  name: 'extractRawTextPrompt',
+  input: { schema: ExtractFinancialDataInputSchema },
+  output: { schema: z.object({ rawText: z.string() }) },
+  prompt: `Extract all text content from the provided PDF document.
+  Focus on capturing everything, including tables and line items.
   
-  It is absolutely critical that you only include transactions for which you could extract all the required fields (date, description, amount, category). If any of these fields are missing for a transaction, you MUST discard and completely omit the entire transaction from the output. Do not ever include partial or incomplete transactions.
-`,
+  PDF Document:
+  {{media url=pdfDataUri}}`,
 });
 
-const extractFinancialDataFlow = ai.defineFlow(
+// Phase 2: Structured Data Conversion & Validation
+const structureDataPrompt = ai.definePrompt({
+  name: 'structureDataPrompt',
+  input: { schema: z.object({ rawText: z.string() }) },
+  output: { schema: ExtractFinancialDataOutputSchema },
+  prompt: `You are a data processing expert. Convert the following raw text into a structured JSON array of financial transactions.
+  
+  It is absolutely critical that you only include transactions for which you could extract all the required fields (date, description, amount, category). If any of these fields are missing for a transaction, you MUST discard and completely omit the entire transaction from the output. Do not ever include partial or incomplete transactions.
+  Ensure the date is in YYYY-MM-DD format.
+  
+  Raw Text:
+  {{{rawText}}}
+  `,
+});
+
+// Phase 3: Categorization & Refinement
+const categorizeTransactionsPrompt = ai.definePrompt({
+    name: 'categorizeTransactionsPrompt',
+    input: { schema: ExtractFinancialDataOutputSchema },
+    output: { schema: ExtractFinancialDataOutputSchema },
+    prompt: `You are a financial expert. Review the following list of financial transactions and categorize them into appropriate industry-specific income and expense buckets.
+    Refine the category and subCategory for each transaction based on its description.
+
+    Transactions:
+    {{{JSON transactions}}}
+    `
+});
+
+
+const orchestrateFinancialDataExtraction = ai.defineFlow(
   {
-    name: 'extractFinancialDataFlow',
+    name: 'orchestrateFinancialDataExtraction',
     inputSchema: ExtractFinancialDataInputSchema,
     outputSchema: ExtractFinancialDataOutputSchema,
   },
-  async input => {
-    const {output} = await prompt(input);
-    return output!;
+  async (input) => {
+    // Phase 1
+    const rawExtraction = await extractRawTextPrompt(input);
+    const rawText = rawExtraction.output?.rawText ?? '';
+
+    // Phase 2
+    const structuredData = await structureDataPrompt({ rawText });
+    if (!structuredData.output || structuredData.output.transactions.length === 0) {
+        throw new Error('No valid transactions could be extracted.');
+    }
+
+    // Phase 3
+    const finalCategorization = await categorizeTransactionsPrompt(structuredData.output);
+
+    return finalCategorization.output!;
   }
 );
