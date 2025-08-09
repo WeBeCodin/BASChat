@@ -75,7 +75,7 @@ const orchestrateFinancialDataExtraction = ai.defineFlow(
     // Phase 2
     const structuredData = await structureDataPrompt({ rawText });
     if (!structuredData.output || structuredData.output.transactions.length === 0) {
-        throw new Error('No valid transactions could be extracted.');
+        return { transactions: [] };
     }
 
     // Phase 3
