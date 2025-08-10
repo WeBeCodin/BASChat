@@ -81,59 +81,36 @@ export default function Dashboard() {
   const { toast } = useToast();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
-  const extractWithLangExtractService = async (file: File) => {
+  const extractWithHybridService = async (file: File) => {
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("document_type", "bank_statement"); // Can be "rideshare_summary" or "bank_statement"
 
-    console.log("Trying LangExtract Python service...");
+    console.log("Using hybrid extraction pipeline...");
 
-    // Try Python service first
-    try {
-      const response = await fetch("/api/extract-pdf-langextract", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (response.ok) {
-        console.log("✅ Python LangExtract service responded successfully");
-        const result = await response.json();
-        return result;
-      }
-
-      console.log("❌ Python service failed, falling back to serverless...");
-    } catch (error) {
-      console.log(
-        "❌ Python service error, falling back to serverless:",
-        error
-      );
-    }
-
-    // Fallback to serverless LangExtract
-    console.log("Using serverless LangExtract implementation...");
-    const response = await fetch("/api/extract-pdf-serverless-langextract", {
+    const response = await fetch("/api/extract-pdf-hybrid", {
       method: "POST",
       body: formData,
     });
 
     if (!response.ok) {
       const errorData = await response.json();
-      console.error("Serverless LangExtract error:", errorData);
-      throw new Error(errorData.error || "PDF extraction failed");
+      console.error("Hybrid extraction error:", errorData);
+      throw new Error(errorData.error || errorData.details || "PDF extraction failed");
     }
 
     const result = await response.json();
     console.log(
-      "LangExtract PDF extraction result:",
+      "Hybrid PDF extraction result:",
       JSON.stringify(result, null, 2)
     );
-    console.log("Extracted transactions count:", result.transactions?.length);
+    console.log("Extracted transactions count:", result.transactionCount);
+    console.log("Extraction engine used:", result.extractionEngine);
+    console.log("Extraction time:", result.extractionTime + "ms");
+    console.log("Confidence:", result.confidence);
     console.log(
       "First 3 extracted transactions:",
       result.transactions?.slice(0, 3)
     );
-    console.log("Extraction confidence:", result.extraction_confidence);
-    console.log("Document type detected:", result.document_type);
 
     return result;
   };
@@ -151,8 +128,8 @@ export default function Dashboard() {
     setDocumentInsights(null);
 
     try {
-      // Use Vercel serverless PDF extraction (bypassing Railway issues)
-      const result = await extractWithLangExtractService(file);
+      // Use hybrid extraction pipeline that automatically chooses the best engine
+      const result = await extractWithHybridService(file);
 
       console.log("Final extraction result received:", result);
       console.log("Setting rawTransactions to:", result.transactions);
@@ -323,8 +300,9 @@ export default function Dashboard() {
               </CardTitle>
               <CardDescription className="mt-2 mb-6">
                 Drag and drop your PDF files here or click to upload. Our
-                advanced extraction engine will automatically process your
-                document with maximum accuracy.
+                intelligent hybrid extraction system automatically selects the
+                optimal engine based on document complexity to minimize costs
+                while maximizing accuracy.
               </CardDescription>
 
               <Input
@@ -354,7 +332,7 @@ export default function Dashboard() {
               </CardTitle>
               <CardDescription className="mt-2">
                 {step === "extracting"
-                  ? "Our AI is extracting your financial data. This may take a moment."
+                  ? "Our hybrid AI system is analyzing your document and selecting the optimal extraction engine. This may take a moment."
                   : "Applying industry logic to categorize your transactions."}
               </CardDescription>
             </CardContent>
