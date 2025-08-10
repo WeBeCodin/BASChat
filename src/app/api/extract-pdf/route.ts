@@ -91,6 +91,11 @@ export async function POST(request: NextRequest) {
     }
 
     const result = await response.json();
+    
+    // Debug: Log what we got from Python service
+    console.log("Raw Python service response:", JSON.stringify(result, null, 2));
+    console.log("Python service transaction count:", result.transactions?.length);
+    console.log("First few transactions from Python:", result.transactions?.slice(0, 3));
 
     // Transform the response to match the existing schema
     const transformedResult = {
@@ -102,6 +107,8 @@ export async function POST(request: NextRequest) {
       pageCount: result.page_count,
       transactionCount: result.transaction_count,
     };
+    
+    console.log("Transformed result for frontend:", JSON.stringify(transformedResult, null, 2));
 
     return NextResponse.json(transformedResult);
   } catch (error) {
