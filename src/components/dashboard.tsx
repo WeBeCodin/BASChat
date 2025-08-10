@@ -85,20 +85,20 @@ export default function Dashboard() {
     const formData = new FormData();
     formData.append("file", file);
 
-    console.log("Sending PDF to test extraction endpoint (simulating real Python API)...");
-    const response = await fetch("/api/test-pdf-extraction", {
+    console.log("Sending PDF to extract-pdf API with Python service fallback...");
+    const response = await fetch("/api/extract-pdf", {
       method: "POST",
       body: formData,
     });
 
     if (!response.ok) {
       const errorData = await response.json();
-      console.error("Test PDF extraction API error:", errorData);
-      throw new Error(errorData.error || "Test PDF extraction failed");
+      console.error("PDF extraction API error:", errorData);
+      throw new Error(errorData.error || "PDF extraction failed");
     }
 
     const result = await response.json();
-    console.log("Test PDF extraction API result (simulating real):", JSON.stringify(result, null, 2));
+    console.log("PDF extraction API result:", JSON.stringify(result, null, 2));
     console.log("Extracted transactions count:", result.transactions?.length);
     console.log("First 3 extracted transactions:", result.transactions?.slice(0, 3));
     
