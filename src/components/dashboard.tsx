@@ -87,7 +87,7 @@ export default function Dashboard() {
     formData.append("document_type", "bank_statement"); // Can be "rideshare_summary" or "bank_statement"
 
     console.log("Trying LangExtract Python service...");
-    
+
     // Try Python service first
     try {
       const response = await fetch("/api/extract-pdf-langextract", {
@@ -100,10 +100,13 @@ export default function Dashboard() {
         const result = await response.json();
         return result;
       }
-      
+
       console.log("❌ Python service failed, falling back to serverless...");
     } catch (error) {
-      console.log("❌ Python service error, falling back to serverless:", error);
+      console.log(
+        "❌ Python service error, falling back to serverless:",
+        error
+      );
     }
 
     // Fallback to serverless LangExtract
@@ -120,12 +123,18 @@ export default function Dashboard() {
     }
 
     const result = await response.json();
-    console.log("LangExtract PDF extraction result:", JSON.stringify(result, null, 2));
+    console.log(
+      "LangExtract PDF extraction result:",
+      JSON.stringify(result, null, 2)
+    );
     console.log("Extracted transactions count:", result.transactions?.length);
-    console.log("First 3 extracted transactions:", result.transactions?.slice(0, 3));
+    console.log(
+      "First 3 extracted transactions:",
+      result.transactions?.slice(0, 3)
+    );
     console.log("Extraction confidence:", result.extraction_confidence);
     console.log("Document type detected:", result.document_type);
-    
+
     return result;
   };
 
@@ -144,7 +153,7 @@ export default function Dashboard() {
     try {
       // Use Vercel serverless PDF extraction (bypassing Railway issues)
       const result = await extractWithLangExtractService(file);
-      
+
       console.log("Final extraction result received:", result);
       console.log("Setting rawTransactions to:", result.transactions);
 
@@ -182,23 +191,26 @@ export default function Dashboard() {
     try {
       console.log("Starting categorization for industry:", industry);
       console.log("Raw transactions count:", rawTransactions?.length);
-      
+
       // Test with just the first 5 transactions to see if the AI works
       const testTransactions = rawTransactions?.slice(0, 5) || [];
       console.log("Testing with first 5 transactions:", testTransactions);
-      
+
       // Log the exact input being sent to AI
       const aiInput = {
         rawTransactions: testTransactions,
         industry,
       };
       console.log("AI Input being sent:", JSON.stringify(aiInput, null, 2));
-      
+
       const result = await categorizeTransactions(aiInput);
-      
+
       console.log("Categorization result:", result);
-      console.log("Categorized transactions count:", result?.transactions?.length);
-      
+      console.log(
+        "Categorized transactions count:",
+        result?.transactions?.length
+      );
+
       if (result && result.transactions.length > 0) {
         setCategorizedTransactions(result.transactions);
         setStep("ready");
