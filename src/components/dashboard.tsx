@@ -85,20 +85,20 @@ export default function Dashboard() {
     const formData = new FormData();
     formData.append("file", file);
 
-    console.log("Sending PDF to extraction API...");
-    const response = await fetch("/api/extract-pdf", {
+    console.log("Sending PDF to serverless extraction API...");
+    const response = await fetch("/api/extract-pdf-serverless", {
       method: "POST",
       body: formData,
     });
 
     if (!response.ok) {
       const errorData = await response.json();
-      console.error("PDF extraction API error:", errorData);
-      throw new Error(errorData.error || "Python extraction failed");
+      console.error("Serverless PDF extraction API error:", errorData);
+      throw new Error(errorData.error || "Serverless extraction failed");
     }
 
     const result = await response.json();
-    console.log("PDF extraction API result:", JSON.stringify(result, null, 2));
+    console.log("Serverless PDF extraction API result:", JSON.stringify(result, null, 2));
     console.log("Extracted transactions count:", result.transactions?.length);
     console.log("First 3 extracted transactions:", result.transactions?.slice(0, 3));
     
@@ -118,7 +118,7 @@ export default function Dashboard() {
     setDocumentInsights(null);
 
     try {
-      // Always use LangExtract-powered Python microservice (invisible to user)
+      // Use Vercel serverless PDF extraction (bypassing Railway issues)
       const result = await extractWithLangExtractService(file);
       
       console.log("Final extraction result received:", result);
