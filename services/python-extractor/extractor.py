@@ -366,7 +366,9 @@ class StructuredExtractor:
         transactions = []
         lines = text.split('\n')
         
-        for line in lines:
+        logger.info(f"Processing {len(lines)} lines for general transaction extraction")
+        
+        for i, line in enumerate(lines):
             line = line.strip()
             if not line:
                 continue
@@ -382,9 +384,15 @@ class StructuredExtractor:
             if not date_match:
                 continue
                 
+            logger.debug(f"Line {i}: Found date {date_match} in: {line[:100]}")
+                
             # Extract amount
             amount = self._extract_amount(line)
+            logger.debug(f"Line {i}: Extracted amount {amount}")
+            
             if amount == 0.0:
+                # Skip transactions with zero amount
+                logger.debug(f"Line {i}: Skipping zero amount transaction")
                 continue
             
             # Clean description
@@ -394,13 +402,21 @@ class StructuredExtractor:
             description = re.sub(r'\$\s*\d{1,3}(?:,\d{3})*(?:\.\d{2})?', '', description)
             description = re.sub(r'\s+', ' ', description).strip()
             
-            if description:
-                transactions.append(RawTransaction(
+            logger.debug(f"Line {i}: Cleaned description: '{description}'")
+            
+            # Only create transaction if we have a meaningful description
+            if description and len(description) > 2:
+                transaction = RawTransaction(
                     date=date_match,
                     description=description,
                     amount=amount
-                ))
+                )
+                transactions.append(transaction)
+                logger.debug(f"Line {i}: Created transaction: {transaction}")
+            else:
+                logger.debug(f"Line {i}: Skipping transaction with empty/short description")
         
+        logger.info(f"General extraction completed: {len(transactions)} transactions found")
         return transactions
     
     def _normalize_date(self, date_str: str) -> str:
@@ -426,12 +442,27 @@ class StructuredExtractor:
     
     def _extract_amount(self, text: str) -> float:
         """Extract monetary amount from text"""
-        for pattern in self.money_patterns:
+        # Try multiple money patterns
+        patterns = [
+            r'\$\s*(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)',  # $1,234.56
+            r'(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)\s*\$',  # 1,234.56$
+            r'[-+]?\s*\$\s*(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)',  # -$1,234.56 or +$1,234.56
+            r'[-+]?\s*(\d{1,3}(?:,\d{3})*\.\d{2})\b',   # -1,234.56 or +1,234.56
+            r'\b(\d{1,3}(?:,\d{3})*\.\d{2})\b',   # 1,234.56 (standalone)
+            r'\b(\d+\.\d{2})\b',   # Simple decimal like 15.75
+            r'\b(\d+)\.\d{2}\b',   # More flexible decimal matching
+        ]
+        
+        for pattern in patterns:
             matches = re.findall(pattern, text)
             if matches:
                 amount_str = matches[0].replace(',', '').replace('$', '').strip()
                 try:
-                    return float(amount_str)
+                    amount = float(amount_str)
+                    # Handle negative indicators in the text
+                    if 'debit' in text.lower() or 'withdrawal' in text.lower() or text.startswith('-'):
+                        amount = -abs(amount)
+                    return amount
                 except ValueError:
                     continue
         return 0.0
@@ -570,8 +601,14 @@ class LangExtractStyleExtractor:
             text_content = self.pdf_extractor.extract_text_from_pdf(pdf_content)
             page_count = self.pdf_extractor.get_page_count(pdf_content)
             
+            # Debug: Log extracted text sample
+            logger.info(f"Extracted text length: {len(text_content)} characters")
+            logger.info(f"First 500 characters of extracted text: {text_content[:500]}")
+            logger.info(f"PDF has {page_count} pages")
+            
             # Extract structured data using our LangExtract-style approach
             structured_data = self.structured_extractor.extract_structured_data(text_content)
+            logger.info(f"Structured extraction completed. Data type: {type(structured_data)}")
             
             # Convert to standardized format for compatibility
             if isinstance(structured_data, (TransactionList, RideshareTaxSummary)):
@@ -579,6 +616,10 @@ class LangExtractStyleExtractor:
                 transactions = self._convert_to_raw_transactions(structured_data)
             else:
                 transactions = structured_data
+            
+            logger.info(f"Final transactions count: {len(transactions)}")
+            if transactions:
+                logger.info(f"Sample transaction: date={transactions[0].date}, desc='{transactions[0].description}', amount={transactions[0].amount}")
             
             return ExtractionResult(
                 transactions=transactions,
