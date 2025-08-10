@@ -84,23 +84,26 @@ export default function Dashboard() {
   const extractWithLangExtractService = async (file: File) => {
     const formData = new FormData();
     formData.append("file", file);
+    formData.append("document_type", "bank_statement"); // Can be "rideshare_summary" or "bank_statement"
 
-    console.log("Sending PDF to real Node.js extraction API (production-ready)...");
-    const response = await fetch("/api/extract-pdf-real-nodejs", {
+    console.log("Sending PDF to LangExtract service (following technical specification)...");
+    const response = await fetch("/api/extract-pdf-langextract", {
       method: "POST",
       body: formData,
     });
 
     if (!response.ok) {
       const errorData = await response.json();
-      console.error("Real PDF extraction API error:", errorData);
-      throw new Error(errorData.error || "Real PDF extraction failed");
+      console.error("LangExtract PDF extraction API error:", errorData);
+      throw new Error(errorData.error || "LangExtract PDF extraction failed");
     }
 
     const result = await response.json();
-    console.log("Real PDF extraction result:", JSON.stringify(result, null, 2));
+    console.log("LangExtract PDF extraction result:", JSON.stringify(result, null, 2));
     console.log("Extracted transactions count:", result.transactions?.length);
     console.log("First 3 extracted transactions:", result.transactions?.slice(0, 3));
+    console.log("Extraction confidence:", result.extraction_confidence);
+    console.log("Document type detected:", result.document_type);
     
     return result;
   };
