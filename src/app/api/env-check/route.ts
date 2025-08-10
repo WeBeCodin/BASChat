@@ -9,19 +9,23 @@ export async function GET() {
         hasGoogleAIKey: !!process.env.GOOGLE_GENAI_API_KEY,
         keyLength: process.env.GOOGLE_GENAI_API_KEY?.length || 0,
         vercelEnv: process.env.VERCEL_ENV,
-        allEnvKeys: Object.keys(process.env).filter(key => 
-          key.includes('GOOGLE') || 
-          key.includes('AI') || 
-          key.includes('GENAI') ||
-          key.includes('API_KEY')
+        allEnvKeys: Object.keys(process.env).filter(
+          (key) =>
+            key.includes("GOOGLE") ||
+            key.includes("AI") ||
+            key.includes("GENAI") ||
+            key.includes("API_KEY")
         ),
-        status: "Environment check endpoint working"
-      }
+        status: "Environment check endpoint working",
+      },
     });
   } catch (error) {
-    return NextResponse.json({
-      error: "Environment check failed",
-      details: error instanceof Error ? error.message : String(error)
-    }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: "Environment check failed",
+        details: error instanceof Error ? error.message : String(error),
+      },
+      { status: 500 }
+    );
   }
 }
