@@ -24,37 +24,57 @@ export async function POST(request: NextRequest) {
     const pythonFormData = new FormData();
     pythonFormData.append("file", file);
 
-    // Check if Python service is available
-    const useMockData = PYTHON_SERVICE_URL === "http://localhost:8000" && process.env.NODE_ENV !== "development";
+    // Check if Python service is available - temporarily force mock data for debugging
+    const useMockData = true; // Temporarily force mock data to test AI categorization
 
     if (useMockData) {
-      // Mock implementation for development
-      console.log("Using mock PDF extraction for development");
+      // Enhanced mock implementation with realistic rideshare data
+      console.log("Using enhanced mock PDF extraction for debugging");
       const mockResult = {
         transactions: [
           {
-            date: "2024-01-15",
-            description: "ATM Withdrawal",
-            amount: -200.0,
+            date: "2025-06-30",
+            description: "UBER BV Trip - Downtown to Airport",
+            amount: 45.50,
           },
           {
-            date: "2024-01-16",
-            description: "Grocery Store Purchase",
-            amount: -85.5,
+            date: "2025-06-29", 
+            description: "DIDI MOBILITY Trip - Home to Mall",
+            amount: 18.75,
           },
           {
-            date: "2024-01-17",
-            description: "Salary Deposit",
-            amount: 3500.0,
+            date: "2025-06-28",
+            description: "AMPOL Fuel Purchase - Vehicle Refuel",
+            amount: -65.00,
           },
           {
-            date: "2024-01-18",
-            description: "Online Transfer",
-            amount: -150.0,
+            date: "2025-06-27",
+            description: "Uber Tip from Passenger",
+            amount: 5.00,
+          },
+          {
+            date: "2025-06-26",
+            description: "LINKT Melbourne Toll Charges",
+            amount: -12.30,
+          },
+          {
+            date: "2025-06-25",
+            description: "IMO CARWASH Vehicle Cleaning",
+            amount: -25.00,
+          },
+          {
+            date: "2025-06-24",
+            description: "Felix Mobile Phone Bill",
+            amount: -30.00,
+          },
+          {
+            date: "2025-06-23",
+            description: "UBER BV Trip - City to Suburbs",
+            amount: 32.80,
           },
         ],
         pageCount: 1,
-        transactionCount: 4,
+        transactionCount: 8,
       };
 
       return NextResponse.json(mockResult);

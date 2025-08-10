@@ -366,7 +366,7 @@ class StructuredExtractor:
         transactions = []
         lines = text.split('\n')
         
-        logger.info(f"Processing {len(lines)} lines for general transaction extraction")
+        print(f"Processing {len(lines)} lines for general transaction extraction")
         
         for i, line in enumerate(lines):
             line = line.strip()
@@ -384,15 +384,15 @@ class StructuredExtractor:
             if not date_match:
                 continue
                 
-            logger.debug(f"Line {i}: Found date {date_match} in: {line[:100]}")
+            print(f"Line {i}: Found date {date_match} in: {line[:100]}")
                 
             # Extract amount
             amount = self._extract_amount(line)
-            logger.debug(f"Line {i}: Extracted amount {amount}")
+            print(f"Line {i}: Extracted amount {amount}")
             
             if amount == 0.0:
                 # Skip transactions with zero amount
-                logger.debug(f"Line {i}: Skipping zero amount transaction")
+                print(f"Line {i}: Skipping zero amount transaction")
                 continue
             
             # Clean description
@@ -402,7 +402,7 @@ class StructuredExtractor:
             description = re.sub(r'\$\s*\d{1,3}(?:,\d{3})*(?:\.\d{2})?', '', description)
             description = re.sub(r'\s+', ' ', description).strip()
             
-            logger.debug(f"Line {i}: Cleaned description: '{description}'")
+            print(f"Line {i}: Cleaned description: '{description}'")
             
             # Only create transaction if we have a meaningful description
             if description and len(description) > 2:
@@ -412,11 +412,11 @@ class StructuredExtractor:
                     amount=amount
                 )
                 transactions.append(transaction)
-                logger.debug(f"Line {i}: Created transaction: {transaction}")
+                print(f"Line {i}: Created transaction: {transaction}")
             else:
-                logger.debug(f"Line {i}: Skipping transaction with empty/short description")
+                print(f"Line {i}: Skipping transaction with empty/short description")
         
-        logger.info(f"General extraction completed: {len(transactions)} transactions found")
+        print(f"General extraction completed: {len(transactions)} transactions found")
         return transactions
     
     def _normalize_date(self, date_str: str) -> str:
@@ -602,13 +602,13 @@ class LangExtractStyleExtractor:
             page_count = self.pdf_extractor.get_page_count(pdf_content)
             
             # Debug: Log extracted text sample
-            logger.info(f"Extracted text length: {len(text_content)} characters")
-            logger.info(f"First 500 characters of extracted text: {text_content[:500]}")
-            logger.info(f"PDF has {page_count} pages")
+            print(f"Extracted text length: {len(text_content)} characters")
+            print(f"First 500 characters of extracted text: {text_content[:500]}")
+            print(f"PDF has {page_count} pages")
             
             # Extract structured data using our LangExtract-style approach
             structured_data = self.structured_extractor.extract_structured_data(text_content)
-            logger.info(f"Structured extraction completed. Data type: {type(structured_data)}")
+            print(f"Structured extraction completed. Data type: {type(structured_data)}")
             
             # Convert to standardized format for compatibility
             if isinstance(structured_data, (TransactionList, RideshareTaxSummary)):
@@ -617,9 +617,9 @@ class LangExtractStyleExtractor:
             else:
                 transactions = structured_data
             
-            logger.info(f"Final transactions count: {len(transactions)}")
+            print(f"Final transactions count: {len(transactions)}")
             if transactions:
-                logger.info(f"Sample transaction: date={transactions[0].date}, desc='{transactions[0].description}', amount={transactions[0].amount}")
+                print(f"Sample transaction: date={transactions[0].date}, desc='{transactions[0].description}', amount={transactions[0].amount}")
             
             return ExtractionResult(
                 transactions=transactions,
