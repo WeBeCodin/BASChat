@@ -19,9 +19,92 @@ export async function categorizeTransactions(
 ): Promise<CategorizeTransactionsOutput> {
   try {
     console.log("categorizeTransactions called with:", JSON.stringify(input, null, 2));
-    const result = await categorizeTransactionsFlow(input);
-    console.log("categorizeTransactionsFlow returned:", JSON.stringify(result, null, 2));
-    return result;
+    
+    // Use direct Google AI API instead of Genkit (which was causing issues)
+    const apiKey = process.env.GOOGLE_GENAI_API_KEY;
+    
+    if (!apiKey) {
+      throw new Error("GOOGLE_GENAI_API_KEY not found");
+    }
+
+    // Create industry-specific prompt for rideshare transactions
+    const prompt = `You are a financial analyst specializing in ${input.industry} Business Activity Statement (BAS) categorization.
+
+Categorize these transactions with appropriate "category" and "subCategory" fields:
+
+For ${input.industry} industry, use these categories:
+- Income: UBER/DIDI payments, tips, bonuses
+- Expenses: Fuel, tolls, vehicle costs, phone bills, car wash, repairs, professional fees
+
+Transactions to categorize:
+${JSON.stringify(input.rawTransactions, null, 2)}
+
+Return a JSON object with this exact structure:
+{
+  "transactions": [
+    {
+      "date": "YYYY-MM-DD",
+      "description": "original description", 
+      "amount": 0.00,
+      "category": "Income or Expenses",
+      "subCategory": "specific subcategory like Fuel, Tolls, Vehicle Costs, etc."
+    }
+  ]
+}`;
+
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        contents: [{
+          parts: [{
+            text: prompt
+          }]
+        }],
+        generationConfig: {
+          temperature: 0.1,
+          maxOutputTokens: 4096,
+        }
+      })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Google AI API error:", errorText);
+      throw new Error(`AI API failed: ${response.status}`);
+    }
+
+    const result = await response.json();
+    const aiText = result.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    
+    console.log("AI response text:", aiText);
+    
+    // Extract JSON from the response
+    const jsonMatch = aiText.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      console.error("No JSON found in AI response:", aiText);
+      return { transactions: [] };
+    }
+
+    try {
+      const parsedResult = JSON.parse(jsonMatch[0]);
+      console.log("Successfully parsed AI result:", parsedResult);
+      
+      const finalResult = {
+        transactions: parsedResult.transactions || []
+      };
+      
+      console.log("categorizeTransactions returning:", JSON.stringify(finalResult, null, 2));
+      return finalResult;
+      
+    } catch (parseError) {
+      console.error("Failed to parse AI JSON response:", parseError);
+      console.error("Raw AI text:", aiText);
+      return { transactions: [] };
+    }
+    
   } catch (error) {
     console.error("Error in categorizeTransactions:", error);
     console.error("Error details:", {
