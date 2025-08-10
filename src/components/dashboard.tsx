@@ -153,10 +153,14 @@ export default function Dashboard() {
       const testTransactions = rawTransactions?.slice(0, 5) || [];
       console.log("Testing with first 5 transactions:", testTransactions);
       
-      const result = await categorizeTransactions({
+      // Log the exact input being sent to AI
+      const aiInput = {
         rawTransactions: testTransactions,
         industry,
-      });
+      };
+      console.log("AI Input being sent:", JSON.stringify(aiInput, null, 2));
+      
+      const result = await categorizeTransactions(aiInput);
       
       console.log("Categorization result:", result);
       console.log("Categorized transactions count:", result?.transactions?.length);

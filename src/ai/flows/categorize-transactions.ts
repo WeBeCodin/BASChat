@@ -118,7 +118,22 @@ const categorizeTransactionsFlow = ai.defineFlow(
   async (input) => {
     try {
       console.log("categorizeTransactionsFlow input:", JSON.stringify(input, null, 2));
+      console.log("Environment check - API key exists:", !!process.env.GOOGLE_GENAI_API_KEY);
+      console.log("Environment check - API key length:", process.env.GOOGLE_GENAI_API_KEY?.length || 0);
       console.log("About to call categorizationPrompt...");
+      
+      // Test if the AI service is working at all
+      try {
+        console.log("Testing basic AI connectivity...");
+        const testResult = await ai.generate({
+          prompt: "Say hello",
+          model: 'googleai/gemini-1.5-flash-latest',
+        });
+        console.log("Basic AI test successful:", testResult.text);
+      } catch (testError) {
+        console.error("Basic AI test failed:", testError);
+        console.error("This indicates an API key or connectivity issue");
+      }
       
       const promptResult = await categorizationPrompt(input);
       console.log("categorizationPrompt full result:", JSON.stringify(promptResult, null, 2));
