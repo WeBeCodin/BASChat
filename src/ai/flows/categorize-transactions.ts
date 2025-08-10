@@ -17,7 +17,15 @@ import {
 export async function categorizeTransactions(
   input: CategorizeTransactionsInput
 ): Promise<CategorizeTransactionsOutput> {
-  return categorizeTransactionsFlow(input);
+  try {
+    console.log("categorizeTransactions called with:", input);
+    const result = await categorizeTransactionsFlow(input);
+    console.log("categorizeTransactionsFlow returned:", result);
+    return result;
+  } catch (error) {
+    console.error("Error in categorizeTransactions:", error);
+    throw error;
+  }
 }
 
 const categorizationPrompt = ai.definePrompt({
@@ -105,18 +113,29 @@ const categorizeTransactionsFlow = ai.defineFlow(
   async (input) => {
     try {
       console.log("categorizeTransactionsFlow input:", input);
+      console.log("About to call categorizationPrompt...");
+      
       const { output } = await categorizationPrompt(input);
-      console.log("categorizeTransactionsFlow output:", output);
+      console.log("categorizationPrompt raw output:", output);
       
       if (!output) {
         console.log("No output from categorization prompt");
         return { transactions: [] };
       }
-      return {
+      
+      const result = {
         transactions: output.transactions || [],
       };
+      
+      console.log("categorizeTransactionsFlow final result:", result);
+      return result;
     } catch (error) {
       console.error("Error in categorizeTransactionsFlow:", error);
+      console.error("Error details:", {
+        name: error.name,
+        message: error.message,
+        stack: error.stack
+      });
       return { transactions: [] };
     }
   }
