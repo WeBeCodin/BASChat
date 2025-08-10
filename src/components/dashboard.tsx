@@ -85,20 +85,20 @@ export default function Dashboard() {
     const formData = new FormData();
     formData.append("file", file);
 
-    console.log("Sending PDF to serverless extraction API...");
-    const response = await fetch("/api/extract-pdf-serverless", {
+    console.log("Sending PDF to test extraction endpoint (simulating real Python API)...");
+    const response = await fetch("/api/test-pdf-extraction", {
       method: "POST",
       body: formData,
     });
 
     if (!response.ok) {
       const errorData = await response.json();
-      console.error("Serverless PDF extraction API error:", errorData);
-      throw new Error(errorData.error || "Serverless extraction failed");
+      console.error("Test PDF extraction API error:", errorData);
+      throw new Error(errorData.error || "Test PDF extraction failed");
     }
 
     const result = await response.json();
-    console.log("Serverless PDF extraction API result:", JSON.stringify(result, null, 2));
+    console.log("Test PDF extraction API result (simulating real):", JSON.stringify(result, null, 2));
     console.log("Extracted transactions count:", result.transactions?.length);
     console.log("First 3 extracted transactions:", result.transactions?.slice(0, 3));
     
