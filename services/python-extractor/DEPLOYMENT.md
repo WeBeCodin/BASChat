@@ -3,17 +3,20 @@
 ## Prerequisites
 
 1. **Install Google Cloud CLI**
+
    ```bash
    # Download from: https://cloud.google.com/sdk/docs/install
    ```
 
 2. **Authenticate with Google Cloud**
+
    ```bash
    gcloud auth login
    gcloud config set project YOUR_PROJECT_ID
    ```
 
 3. **Enable required APIs**
+
    ```bash
    gcloud services enable run.googleapis.com
    gcloud services enable containerregistry.googleapis.com
@@ -24,16 +27,19 @@
 ## Deployment Steps
 
 1. **Update the project ID** in `deploy.ps1`:
+
    ```powershell
    $PROJECT_ID = "your-actual-gcp-project-id"
    ```
 
 2. **Navigate to the service directory**:
+
    ```bash
    cd services/python-extractor
    ```
 
 3. **Run the deployment script**:
+
    ```powershell
    .\deploy.ps1
    ```

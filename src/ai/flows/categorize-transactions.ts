@@ -1,4 +1,4 @@
-'use server';
+"use server";
 
 /**
  * @fileOverview An AI agent that categorizes financial transactions based on industry.
@@ -6,13 +6,13 @@
  * - categorizeTransactions - A function that handles the transaction categorization process.
  */
 
-import {ai} from '@/ai/genkit';
+import { ai } from "@/ai/genkit";
 import {
   CategorizeTransactionsInputSchema,
   CategorizeTransactionsOutputSchema,
   CategorizeTransactionsInput,
   CategorizeTransactionsOutput,
-} from '@/ai/schemas';
+} from "@/ai/schemas";
 
 export async function categorizeTransactions(
   input: CategorizeTransactionsInput
@@ -21,9 +21,9 @@ export async function categorizeTransactions(
 }
 
 const categorizationPrompt = ai.definePrompt({
-  name: 'transactionCategorizationPrompt',
-  input: {schema: CategorizeTransactionsInputSchema},
-  output: {schema: CategorizeTransactionsOutputSchema},
+  name: "transactionCategorizationPrompt",
+  input: { schema: CategorizeTransactionsInputSchema },
+  output: { schema: CategorizeTransactionsOutputSchema },
   prompt: `You are an expert financial analyst specializing in categorizing transactions for Business Activity Statements (BAS). Your task is to categorize a list of raw transactions based on the user's specified industry.
 
   **User's Industry:** {{industry}}
@@ -98,22 +98,26 @@ const categorizationPrompt = ai.definePrompt({
 
 const categorizeTransactionsFlow = ai.defineFlow(
   {
-    name: 'categorizeTransactionsFlow',
+    name: "categorizeTransactionsFlow",
     inputSchema: CategorizeTransactionsInputSchema,
     outputSchema: CategorizeTransactionsOutputSchema,
   },
   async (input) => {
     try {
-      const {output} = await categorizationPrompt(input);
+      console.log("categorizeTransactionsFlow input:", input);
+      const { output } = await categorizationPrompt(input);
+      console.log("categorizeTransactionsFlow output:", output);
+      
       if (!output) {
-        return {transactions: []};
+        console.log("No output from categorization prompt");
+        return { transactions: [] };
       }
       return {
         transactions: output.transactions || [],
       };
     } catch (error) {
-      console.error('Error in categorizeTransactionsFlow:', error);
-      return {transactions: []};
+      console.error("Error in categorizeTransactionsFlow:", error);
+      return { transactions: [] };
     }
   }
 );
