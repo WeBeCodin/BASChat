@@ -149,8 +149,12 @@ export default function Dashboard() {
       console.log("Starting categorization for industry:", industry);
       console.log("Raw transactions count:", rawTransactions?.length);
       
+      // Test with just the first 5 transactions to see if the AI works
+      const testTransactions = rawTransactions?.slice(0, 5) || [];
+      console.log("Testing with first 5 transactions:", testTransactions);
+      
       const result = await categorizeTransactions({
-        rawTransactions,
+        rawTransactions: testTransactions,
         industry,
       });
       
