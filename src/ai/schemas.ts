@@ -87,7 +87,7 @@ export const TransactionSchema = z.object({
   category: z
     .string()
     .describe(
-      'The category of the transaction (e.g., Income, Expenses, etc.).'
+      'The category of the transaction (e.g., Income, Expenses, Maybe, etc.).'
     ),
   subCategory: z
     .string()
@@ -95,10 +95,17 @@ export const TransactionSchema = z.object({
       'The sub-category of the transaction (e.g., Sales, Rent, Utilities, etc.).'
     )
     .optional(),
+  confidence: z
+    .number()
+    .min(0)
+    .max(1)
+    .describe('Confidence level of the categorization (0-1).')
+    .optional(),
 });
 export type Transaction = z.infer<typeof TransactionSchema>;
 
 export const CategorizeTransactionsOutputSchema = z.object({
-    transactions: z.array(TransactionSchema).describe("An array of categorized financial transactions.")
+    transactions: z.array(TransactionSchema).describe("An array of categorized financial transactions."),
+    maybeTransactions: z.array(TransactionSchema).describe("An array of uncertain transactions that need user review.").optional()
 });
 export type CategorizeTransactionsOutput = z.infer<typeof CategorizeTransactionsOutputSchema>;

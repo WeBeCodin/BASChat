@@ -27,14 +27,22 @@ export async function categorizeTransactions(
       throw new Error("GOOGLE_GENAI_API_KEY not found");
     }
 
-    // Create industry-specific prompt for rideshare transactions
-    const prompt = `You are a financial analyst specializing in ${input.industry} Business Activity Statement (BAS) categorization.
+    // Create industry-specific prompt for rideshare transactions with two-pass categorization
+    const firstPassPrompt = `You are a financial analyst specializing in ${input.industry} Business Activity Statement (BAS) categorization.
 
-Categorize these transactions with appropriate "category" and "subCategory" fields:
+FIRST PASS: Categorize transactions only if you are CONFIDENT they belong to specific categories.
 
-For ${input.industry} industry, use these categories:
-- Income: UBER/DIDI payments, tips, bonuses
+For ${input.industry} industry, use these categories only for CLEAR matches:
+- Income: UBER/DIDI payments, tips, bonuses, ride-sharing income
 - Expenses: Fuel, tolls, vehicle costs, phone bills, car wash, repairs, professional fees
+
+For transactions you're UNCERTAIN about, use:
+- Maybe: Could be business-related but unclear, personal expenses that might be deductible, ambiguous transactions
+
+Add confidence scores (0-1) where:
+- 0.9-1.0: Very confident (clear business income/expense)
+- 0.5-0.8: Somewhat confident (could be business-related)
+- 0.0-0.4: Uncertain (needs user review)
 
 Transactions to categorize:
 ${JSON.stringify(input.rawTransactions, null, 2)}
@@ -46,8 +54,9 @@ Return a JSON object with this exact structure:
       "date": "YYYY-MM-DD",
       "description": "original description", 
       "amount": 0.00,
-      "category": "Income or Expenses",
-      "subCategory": "specific subcategory like Fuel, Tolls, Vehicle Costs, etc."
+      "category": "Income, Expenses, or Maybe",
+      "subCategory": "specific subcategory like Fuel, Tolls, Vehicle Costs, Uncertain Business Expense, etc.",
+      "confidence": 0.85
     }
   ]
 }`;
@@ -60,7 +69,7 @@ Return a JSON object with this exact structure:
       body: JSON.stringify({
         contents: [{
           parts: [{
-            text: prompt
+            text: firstPassPrompt
           }]
         }],
         generationConfig: {
@@ -92,11 +101,29 @@ Return a JSON object with this exact structure:
       const parsedResult = JSON.parse(jsonMatch[0]);
       console.log("Successfully parsed AI result:", parsedResult);
       
+      // Separate transactions by category
+      const categorizedTransactions = parsedResult.transactions || [];
+      const finalTransactions: any[] = [];
+      const maybeTransactions: any[] = [];
+      
+      categorizedTransactions.forEach((transaction: any) => {
+        if (transaction.category === "Maybe" || (transaction.confidence && transaction.confidence < 0.6)) {
+          maybeTransactions.push({
+            ...transaction,
+            category: "Maybe"
+          });
+        } else {
+          finalTransactions.push(transaction);
+        }
+      });
+      
       const finalResult = {
-        transactions: parsedResult.transactions || []
+        transactions: finalTransactions,
+        maybeTransactions: maybeTransactions.length > 0 ? maybeTransactions : undefined
       };
       
       console.log("categorizeTransactions returning:", JSON.stringify(finalResult, null, 2));
+      console.log(`Categorized: ${finalTransactions.length} certain, ${maybeTransactions.length} uncertain transactions`);
       return finalResult;
       
     } catch (parseError) {

@@ -74,12 +74,52 @@ export default function Dashboard() {
   const [categorizedTransactions, setCategorizedTransactions] = useState<
     Transaction[] | null
   >(null);
+  const [maybeTransactions, setMaybeTransactions] = useState<
+    Transaction[] | null
+  >(null);
   const [documentInsights, setDocumentInsights] =
     useState<DocumentInsights | null>(null);
   const [conversation, setConversation] = useState<ConversationMessage[]>([]);
   const [isChatLoading, setIsChatLoading] = useState(false);
   const { toast } = useToast();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  // Helper functions for managing maybe transactions
+  const approveMaybeTransaction = useCallback((transactionIndex: number, newCategory: "Income" | "Expenses") => {
+    if (!maybeTransactions) return;
+    
+    const transaction = maybeTransactions[transactionIndex];
+    if (!transaction) return;
+    
+    // Update the transaction category
+    const updatedTransaction = { ...transaction, category: newCategory };
+    
+    // Remove from maybe list
+    const updatedMaybeTransactions = maybeTransactions.filter((_, index) => index !== transactionIndex);
+    
+    // Add to categorized list
+    const updatedCategorizedTransactions = [...(categorizedTransactions || []), updatedTransaction];
+    
+    setMaybeTransactions(updatedMaybeTransactions);
+    setCategorizedTransactions(updatedCategorizedTransactions);
+    
+    toast({
+      title: "Transaction Approved",
+      description: `Transaction moved to ${newCategory}`,
+    });
+  }, [maybeTransactions, categorizedTransactions, toast]);
+
+  const removeMaybeTransaction = useCallback((transactionIndex: number) => {
+    if (!maybeTransactions) return;
+    
+    const updatedMaybeTransactions = maybeTransactions.filter((_, index) => index !== transactionIndex);
+    setMaybeTransactions(updatedMaybeTransactions);
+    
+    toast({
+      title: "Transaction Removed",
+      description: "Transaction excluded from BAS calculations",
+    });
+  }, [maybeTransactions, toast]);
 
   const extractWithHybridService = async (file: File) => {
     const formData = new FormData();
@@ -124,6 +164,7 @@ export default function Dashboard() {
     setStep("extracting");
     setRawTransactions(null);
     setCategorizedTransactions(null);
+    setMaybeTransactions(null);
     setConversation([]);
     setDocumentInsights(null);
 
@@ -190,15 +231,26 @@ export default function Dashboard() {
         "Categorized transactions count:",
         result?.transactions?.length
       );
+      console.log(
+        "Maybe transactions count:",
+        result?.maybeTransactions?.length || 0
+      );
 
       if (result && result.transactions.length > 0) {
         setCategorizedTransactions(result.transactions);
+        setMaybeTransactions(result.maybeTransactions || []);
         setStep("ready");
+        
+        const maybeCount = result.maybeTransactions?.length || 0;
+        const maybeMessage = maybeCount > 0 
+          ? ` I've also identified ${maybeCount} transactions that need your review - these appear in orange and require your approval.`
+          : "";
+          
         setConversation([
           {
             role: "bot",
             content:
-              "I've analyzed and categorized your transactions based on your industry. Here is a summary. How can I help you with your BAS analysis?",
+              `I've analyzed and categorized your transactions based on your industry. Here is a summary.${maybeMessage} How can I help you with your BAS analysis?`,
           },
         ]);
       } else {
@@ -374,7 +426,12 @@ export default function Dashboard() {
                 summary={financialSummary}
                 bas={basCalculations}
               />
-              <TransactionsTable transactions={categorizedTransactions} />
+              <TransactionsTable 
+                transactions={categorizedTransactions} 
+                maybeTransactions={maybeTransactions}
+                onApproveMaybeTransaction={approveMaybeTransaction}
+                onRemoveMaybeTransaction={removeMaybeTransaction}
+              />
             </div>
             <div className="h-full max-h-[calc(100vh-12rem)] min-h-[500px]">
               <ChatPanel
