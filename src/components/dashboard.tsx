@@ -169,16 +169,19 @@ export default function Dashboard() {
       console.log("Starting categorization for industry:", industry);
       console.log("Raw transactions count:", rawTransactions?.length);
 
-      // Test with just the first 5 transactions to see if the AI works
-      const testTransactions = rawTransactions?.slice(0, 5) || [];
-      console.log("Testing with first 5 transactions:", testTransactions);
+      // Use all transactions for categorization
+      const transactionsToProcess = rawTransactions || [];
+      console.log("Processing all transactions:", transactionsToProcess.length);
 
       // Log the exact input being sent to AI
       const aiInput = {
-        rawTransactions: testTransactions,
+        rawTransactions: transactionsToProcess,
         industry,
       };
-      console.log("AI Input being sent:", JSON.stringify(aiInput, null, 2));
+      console.log("AI Input being sent - first 3 transactions:", JSON.stringify({
+        ...aiInput,
+        rawTransactions: aiInput.rawTransactions.slice(0, 3)
+      }, null, 2));
 
       const result = await categorizeTransactions(aiInput);
 
