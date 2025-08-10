@@ -37,32 +37,59 @@ const categorizationPrompt = ai.definePrompt({
 
   **Industry Lexicons:**
 
-  **Construction:**
-  - **Income:** Customer Payments, Progress Payments, Variation Claims, Retention Releases.
+  **Rideshare:**
+  - **Income:** UBERBV, DIDI MOBILITY, tips, bonuses, rideshare platform payments.
   - **Expenses:**
-    - **Materials:** Bunnings, Reece, Mitre 10, Steel Supplies, Concrete & Cement.
-    - **Subcontractors:** Plumbers, Electricians, Carpenters, Landscapers.
-    - **Equipment Hire:** Coates Hire, Kennards Hire.
-    - **Vehicle:** Fuel, Tolls, Registration, Maintenance.
-    - **Other:** Site Safety, Council Fees, Insurance.
+    - **Vehicle Lease/Hire:** Splend Australia, rental fees, vehicle subscription services.
+    - **Tolls:** Linkt Melbourne, road tolls, bridge tolls, tunnel fees.
+    - **Fuel/EV Charging:** AMPOL, BP, CALTEX, 7-ELEVEN, Shell, United, Liberty, Metro, Reddy Express, electricity, EV charging stations.
+    - **Repairs & Maintenance:** Knights Windscreen Repairs, servicing, tyres, mechanical repairs.
+    - **Car Cleaning:** IMO CARWASH, CIRCUM WASH, ZLR*Asultan, car wash services, cleaning supplies.
+    - **Phone & Data:** Felix Mobile, Telstra, Optus, Vodafone, mobile phone bills (business use portion).
+    - **Platform Fees:** Uber service fee, DiDi Service Fee, booking fees, commission.
+    - **Professional Fees:** MYOB, accounting software, tax agent fees.
+    - **Accessories:** Mikes Elec, car chargers, phone mounts, dash cams, EV accessories.
+    - **Passenger Amenities:** water, mints, newspapers, passenger comfort items.
 
-  **Retail (Cafe/Restaurant):**
-  - **Income:** Daily Sales, Uber Eats, DoorDash, MenuLog, Catering.
+  **Construction & Trades:**
+  - **Income:** Invoices, Progress Payments, Client Names, construction services, trade work.
   - **Expenses:**
-    - **Cost of Goods Sold:** Meat Supplier, Fruit & Veg Supplier, Dairy & Co, Bakery Delight, Coffee Beans Inc.
-    - **Wages & Super:** Staff Wages, Superannuation.
-    - **Rent & Utilities:** Commercial Real Estate Agents, AGL, Origin, Water Corp.
-    - **Marketing:** Facebook Ads, Google Ads, Local Newspaper.
-    - **Other:** POS System Fees (Square, Tyro), Bank Fees, Cleaning Supplies.
+    - **Materials & Supplies:** Bunnings, Mitre 10, Reece, trade suppliers, timber, concrete, plumbing supplies, electrical components.
+    - **Tools & Equipment:** Total Tools, Sydney Tools, Kennards Hire, tool purchases, equipment hire.
+    - **Vehicle Expenses:** Fuel, Registration, Insurance, Maintenance (business use percentage).
+    - **Safety Equipment (PPE):** Hard hats, steel-capped boots, hi-vis clothing, gloves, safety gear.
+    - **Licences & Insurance:** Trade licences, White Card, Public Liability Insurance, professional qualifications.
+    - **Subcontractors:** Payments to other contractors (must be reported via TPAR).
 
-  **Professional Services (e.g., IT Consultant, Marketing Agency):**
-  - **Income:** Client Project Fees, Retainer Payments, Service Fees.
+  **NDIS Support Work:**
+  - **Income:** Participant names, Plan Manager names, NDIS payments, self-managed participant payments.
   - **Expenses:**
-    - **Software & Subscriptions:** Google Workspace, Microsoft 365, Adobe, Slack, Xero.
-    - **Wages & Contractors:** Employee Salaries, Freelancer Payments.
-    - **Marketing & Advertising:** Google Ads, LinkedIn Ads, SEO Services.
-    - **Office Expenses:** Officeworks, Rent, Electricity, Internet.
-    - **Other:** Professional Indemnity Insurance, Bank Fees, Travel.
+    - **Professional Fees:** AHPRA, professional association fees, annual registration, membership fees.
+    - **Insurance:** Professional Indemnity, Public Liability, essential insurance premiums.
+    - **Training & Education:** First Aid, CPR, specific disability courses, self-education related to role.
+    - **Supplies & Equipment:** Sensory tools, PPE, sanitiser, gloves, consumables, client support equipment.
+    - **Travel Expenses:** Fuel, public transport fares, tolls, travel between client homes/workplaces.
+    - **Home Office:** Internet, phone, stationery, portion of home office costs for administrative tasks.
+
+  **Truck Driving:**
+  - **Income:** Invoices, freight company names, hauling contracts, transport services.
+  - **Expenses:**
+    - **Vehicle Expenses:** Fuel, oil, tyres, registration, insurance, loan interest, repairs (all truck running costs).
+    - **Travel Expenses:** Accommodation, meals, showers (for required overnight trips away from home).
+    - **Licences & Fees:** Heavy vehicle permits, medical examinations, costs to maintain required licences.
+    - **Communications:** Phone bills, internet, radio equipment (business-use portion).
+    - **Administration:** Logbooks, stationery, accounting fees, business management costs.
+    - **Fuel Tax Credits:** Fuel purchases (separate credit system claimed on BAS).
+
+  **Allied Health:**
+  - **Income:** Patient names, Medicare, DVA, private health funds, patient services (potentially GST-free).
+  - **Expenses:**
+    - **Professional Fees:** AHPRA, association memberships (e.g., APA), annual registration, professional body fees.
+    - **Insurance:** Professional Indemnity Insurance, key business insurance.
+    - **Clinic/Office Expenses:** Rent, electricity, internet, phone, practice location costs.
+    - **Equipment & Supplies:** Treatment tables, medical supplies, software, depreciation for items over $300, consumables.
+    - **Self-Education:** Seminars, conferences, journals, maintaining and improving professional skills.
+    - **Vehicle Expenses:** Fuel, maintenance, registration (for travel between clinics or patient homes, logbook required).
 
   **Raw Transactions Data:**
   {{{jsonStringify rawTransactions}}}

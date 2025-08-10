@@ -8,7 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { UploadCloud, LoaderCircle, FilePlus2, Building, ShoppingCart, Wrench } from 'lucide-react';
+import { UploadCloud, LoaderCircle, FilePlus2, Car, Wrench, Heart, Truck, Stethoscope } from 'lucide-react';
 import FinancialSummary from './financial-summary';
 import TransactionsTable from './transactions-table';
 import ChatPanel from './chat-panel';
@@ -38,9 +38,11 @@ type DocumentInsights = {
 type AppStep = 'uploading' | 'extracting' | 'selecting_industry' | 'categorizing' | 'ready';
 
 const industries = [
-  { name: 'Construction', icon: Wrench },
-  { name: 'Retail (Cafe/Restaurant)', icon: ShoppingCart },
-  { name: 'Professional Services', icon: Building },
+  { name: 'Rideshare', icon: Car },
+  { name: 'Construction & Trades', icon: Wrench },
+  { name: 'NDIS Support Work', icon: Heart },
+  { name: 'Truck Driving', icon: Truck },
+  { name: 'Allied Health', icon: Stethoscope },
 ];
 
 export default function Dashboard() {
