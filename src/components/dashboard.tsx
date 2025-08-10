@@ -86,16 +86,37 @@ export default function Dashboard() {
     formData.append("file", file);
     formData.append("document_type", "bank_statement"); // Can be "rideshare_summary" or "bank_statement"
 
-    console.log("Sending PDF to LangExtract service (following technical specification)...");
-    const response = await fetch("/api/extract-pdf-langextract", {
+    console.log("Trying LangExtract Python service...");
+    
+    // Try Python service first
+    try {
+      const response = await fetch("/api/extract-pdf-langextract", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (response.ok) {
+        console.log("✅ Python LangExtract service responded successfully");
+        const result = await response.json();
+        return result;
+      }
+      
+      console.log("❌ Python service failed, falling back to serverless...");
+    } catch (error) {
+      console.log("❌ Python service error, falling back to serverless:", error);
+    }
+
+    // Fallback to serverless LangExtract
+    console.log("Using serverless LangExtract implementation...");
+    const response = await fetch("/api/extract-pdf-serverless-langextract", {
       method: "POST",
       body: formData,
     });
 
     if (!response.ok) {
       const errorData = await response.json();
-      console.error("LangExtract PDF extraction API error:", errorData);
-      throw new Error(errorData.error || "LangExtract PDF extraction failed");
+      console.error("Serverless LangExtract error:", errorData);
+      throw new Error(errorData.error || "PDF extraction failed");
     }
 
     const result = await response.json();
