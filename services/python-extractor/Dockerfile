@@ -20,13 +20,13 @@ COPY . .
 RUN adduser --disabled-password --gecos '' appuser && chown -R appuser /app
 USER appuser
 
-# Use PORT environment variable for Cloud Run
+# Use PORT environment variable for Railway
 ENV PORT=8080
 EXPOSE $PORT
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:$PORT/health || exit 1
+# Health check (remove for Railway as it has its own health checking)
+# HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
+#     CMD curl -f http://localhost:$PORT/health || exit 1
 
-# Run the application
-CMD uvicorn main:app --host 0.0.0.0 --port $PORT
+# Run the application with more explicit configuration
+CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port $PORT --log-level info"]
