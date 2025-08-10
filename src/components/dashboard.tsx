@@ -85,6 +85,7 @@ export default function Dashboard() {
     const formData = new FormData();
     formData.append("file", file);
 
+    console.log("Sending PDF to extraction API...");
     const response = await fetch("/api/extract-pdf", {
       method: "POST",
       body: formData,
@@ -92,10 +93,16 @@ export default function Dashboard() {
 
     if (!response.ok) {
       const errorData = await response.json();
+      console.error("PDF extraction API error:", errorData);
       throw new Error(errorData.error || "Python extraction failed");
     }
 
-    return await response.json();
+    const result = await response.json();
+    console.log("PDF extraction API result:", JSON.stringify(result, null, 2));
+    console.log("Extracted transactions count:", result.transactions?.length);
+    console.log("First 3 extracted transactions:", result.transactions?.slice(0, 3));
+    
+    return result;
   };
 
   const handleFileChange = async (
@@ -113,6 +120,9 @@ export default function Dashboard() {
     try {
       // Always use LangExtract-powered Python microservice (invisible to user)
       const result = await extractWithLangExtractService(file);
+      
+      console.log("Final extraction result received:", result);
+      console.log("Setting rawTransactions to:", result.transactions);
 
       if (result && result.transactions.length > 0) {
         setRawTransactions(result.transactions);
