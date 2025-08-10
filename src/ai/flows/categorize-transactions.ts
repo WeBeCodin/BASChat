@@ -18,12 +18,17 @@ export async function categorizeTransactions(
   input: CategorizeTransactionsInput
 ): Promise<CategorizeTransactionsOutput> {
   try {
-    console.log("categorizeTransactions called with:", input);
+    console.log("categorizeTransactions called with:", JSON.stringify(input, null, 2));
     const result = await categorizeTransactionsFlow(input);
-    console.log("categorizeTransactionsFlow returned:", result);
+    console.log("categorizeTransactionsFlow returned:", JSON.stringify(result, null, 2));
     return result;
   } catch (error) {
     console.error("Error in categorizeTransactions:", error);
+    console.error("Error details:", {
+      name: error instanceof Error ? error.name : 'Unknown',
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined
+    });
     throw error;
   }
 }
@@ -112,29 +117,43 @@ const categorizeTransactionsFlow = ai.defineFlow(
   },
   async (input) => {
     try {
-      console.log("categorizeTransactionsFlow input:", input);
+      console.log("categorizeTransactionsFlow input:", JSON.stringify(input, null, 2));
       console.log("About to call categorizationPrompt...");
       
-      const { output } = await categorizationPrompt(input);
-      console.log("categorizationPrompt raw output:", output);
+      const promptResult = await categorizationPrompt(input);
+      console.log("categorizationPrompt full result:", JSON.stringify(promptResult, null, 2));
+      
+      const { output } = promptResult;
+      console.log("categorizationPrompt raw output:", JSON.stringify(output, null, 2));
       
       if (!output) {
         console.log("No output from categorization prompt");
         return { transactions: [] };
       }
       
+      if (!output.transactions) {
+        console.log("Output exists but no transactions property:", output);
+        return { transactions: [] };
+      }
+      
+      if (!Array.isArray(output.transactions)) {
+        console.log("Transactions is not an array:", typeof output.transactions, output.transactions);
+        return { transactions: [] };
+      }
+      
       const result = {
-        transactions: output.transactions || [],
+        transactions: output.transactions,
       };
       
-      console.log("categorizeTransactionsFlow final result:", result);
+      console.log("categorizeTransactionsFlow final result:", JSON.stringify(result, null, 2));
+      console.log("Final transactions count:", result.transactions.length);
       return result;
     } catch (error) {
       console.error("Error in categorizeTransactionsFlow:", error);
       console.error("Error details:", {
-        name: error.name,
-        message: error.message,
-        stack: error.stack
+        name: error instanceof Error ? error.name : 'Unknown',
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined
       });
       return { transactions: [] };
     }
