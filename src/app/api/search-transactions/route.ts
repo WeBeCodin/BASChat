@@ -9,14 +9,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing search term or transactions' }, { status: 400 });
     }
 
-    console.log(`Searching for "${searchTerm}" in ${transactions.length} transactions`);
+    console.log(`🔍 TRANSACTION SEARCH: Searching for "${searchTerm}" in ${transactions.length} total transactions`);
+    console.log(`📊 First transaction sample:`, transactions[0]);
+    console.log(`📊 Last transaction sample:`, transactions[transactions.length - 1]);
     
     // Perform case-insensitive search in transaction descriptions
     const matchingTransactions = transactions.filter((transaction: RawTransaction) => 
       transaction.description.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    console.log(`Found ${matchingTransactions.length} transactions matching "${searchTerm}"`);
+    console.log(`✅ SEARCH RESULTS: Found ${matchingTransactions.length} transactions matching "${searchTerm}"`);
+    console.log(`🎯 Sample matches:`, matchingTransactions.slice(0, 3).map((t: RawTransaction) => t.description));
     
     return NextResponse.json({
       searchTerm,
