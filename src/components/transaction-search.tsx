@@ -235,7 +235,7 @@ export default function TransactionSearch({
                     {searchResults.matchingTransactions.map((transaction, index) => (
                       <TableRow 
                         key={index}
-                        className={selectedTransactions.has(index) ? 'bg-blue-50' : ''}
+                        className={selectedTransactions.has(index) ? 'bg-blue-500/10 border-blue-500/20' : 'hover:bg-muted/50'}
                       >
                         <TableCell>
                           <input
