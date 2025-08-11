@@ -6,13 +6,15 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { BarChart2, Plus, Minus, HelpCircle } from 'lucide-react';
+import { BarChart2, Plus, Minus, HelpCircle, Trash2, RefreshCw } from 'lucide-react';
 
 type TransactionsTableProps = {
   transactions: Transaction[] | null;
   maybeTransactions?: Transaction[] | null;
   onApproveMaybeTransaction?: (index: number, category: "Income" | "Expenses") => void;
   onRemoveMaybeTransaction?: (index: number) => void;
+  onDeleteTransaction?: (index: number) => void;
+  onFlipTransactionCategory?: (index: number) => void;
 };
 
 const formatCurrency = (amount: number) => {
@@ -26,7 +28,9 @@ export default function TransactionsTable({
   transactions, 
   maybeTransactions, 
   onApproveMaybeTransaction, 
-  onRemoveMaybeTransaction 
+  onRemoveMaybeTransaction,
+  onDeleteTransaction,
+  onFlipTransactionCategory
 }: TransactionsTableProps) {
   
   const getBadgeStyle = (category: string) => {
@@ -89,7 +93,28 @@ export default function TransactionsTable({
                     >
                       {formatCurrency(t.amount)}
                     </TableCell>
-                    <TableCell></TableCell>
+                    <TableCell className="text-center">
+                      <div className="flex gap-1 justify-center">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => onFlipTransactionCategory?.(index)}
+                          className="h-6 w-6 p-0 bg-blue-500/10 hover:bg-blue-500/20 border-blue-500/20"
+                          title={`Change to ${t.category === 'Income' ? 'Expense' : 'Income'}`}
+                        >
+                          <RefreshCw className="w-3 h-3 text-blue-600" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => onDeleteTransaction?.(index)}
+                          className="h-6 w-6 p-0 bg-red-500/10 hover:bg-red-500/20 border-red-500/20"
+                          title="Delete transaction"
+                        >
+                          <Trash2 className="w-3 h-3 text-red-600" />
+                        </Button>
+                      </div>
+                    </TableCell>
                   </TableRow>
                 ))
               ) : null}

@@ -124,68 +124,91 @@ export default function Dashboard() {
     });
   }, [maybeTransactions, toast]);
 
+  // Helper functions for managing categorized transactions
+  const deleteTransaction = useCallback((transactionIndex: number) => {
+    if (!categorizedTransactions) return;
+    
+    const updatedTransactions = categorizedTransactions.filter((_, index) => index !== transactionIndex);
+    setCategorizedTransactions(updatedTransactions);
+    
+    toast({
+      title: "Transaction Deleted",
+      description: "The transaction has been removed from your analysis.",
+    });
+  }, [categorizedTransactions, toast]);
+
+  const flipTransactionCategory = useCallback((transactionIndex: number) => {
+    if (!categorizedTransactions) return;
+    
+    const updatedTransactions = categorizedTransactions.map((transaction, index) => {
+      if (index === transactionIndex) {
+        return {
+          ...transaction,
+          category: transaction.category === "Income" ? "Expenses" : "Income" as const
+        };
+      }
+      return transaction;
+    });
+    
+    setCategorizedTransactions(updatedTransactions);
+    
+    const transaction = categorizedTransactions[transactionIndex];
+    const newCategory = transaction.category === "Income" ? "Expenses" : "Income";
+    
+    toast({
+      title: "Category Changed",
+      description: `Transaction moved to ${newCategory}`,
+    });
+  }, [categorizedTransactions, toast]);
+
   // Function to analyze transactions and suggest search terms
-  const generateIndustrySearchSuggestions = useCallback((transactions: RawTransaction[]): string[] => {
+  const generateIndustrySearchSuggestions = useCallback((transactions: RawTransaction[], selectedIndustry: string): string[] => {
     if (!transactions || transactions.length === 0) return [];
     
-    const merchantCounts: { [key: string]: number } = {};
     const suggestions = new Set<string>();
     
+    // Industry-specific lexicons
+    const industryTerms: { [key: string]: string[] } = {
+      "Rideshare": ["UBER", "fuel", "car", "vehicle", "maintenance", "insurance", "tolls", "parking", "rego", "registration"],
+      "Construction & Trades": ["tools", "materials", "hardware", "supplies", "equipment", "safety", "trade", "building", "electrical", "plumbing"],
+      "NDIS Support Work": ["client", "support", "care", "training", "equipment", "supplies", "travel", "accommodation", "meals"],
+      "Truck Driving": ["fuel", "diesel", "maintenance", "tyres", "insurance", "rego", "logbook", "tolls", "accommodation", "meals"],
+      "Allied Health": ["equipment", "supplies", "training", "conference", "professional", "insurance", "registration", "software", "travel"]
+    };
+    
+    // Get industry-specific terms
+    const relevantTerms = industryTerms[selectedIndustry] || [];
+    
+    // Check which industry terms actually appear in the transactions
     transactions.forEach(transaction => {
       const desc = transaction.description?.toLowerCase() || '';
       
-      // Count occurrences of merchants/entities
-      const words = desc.split(/\s+/);
-      words.forEach(word => {
-        if (word.length > 3) {
-          merchantCounts[word] = (merchantCounts[word] || 0) + 1;
+      relevantTerms.forEach(term => {
+        if (desc.includes(term.toLowerCase())) {
+          suggestions.add(term);
         }
       });
       
-      // Industry-specific patterns
-      if (desc.includes('uber') || desc.includes('taxi') || desc.includes('transport')) {
-        suggestions.add('UBER');
-        suggestions.add('transport');
-        suggestions.add('taxi');
-      }
-      if (desc.includes('paypal') || desc.includes('stripe') || desc.includes('square')) {
-        suggestions.add('PayPal');
-        suggestions.add('payment processing');
-      }
-      if (desc.includes('aws') || desc.includes('azure') || desc.includes('google cloud')) {
-        suggestions.add('cloud services');
-        suggestions.add('hosting');
-      }
-      if (desc.includes('office') || desc.includes('supplies') || desc.includes('staples')) {
-        suggestions.add('office supplies');
-        suggestions.add('stationery');
-      }
-      if (desc.includes('fuel') || desc.includes('petrol') || desc.includes('gas')) {
-        suggestions.add('fuel');
-        suggestions.add('vehicle expenses');
-      }
-      if (desc.includes('internet') || desc.includes('telstra') || desc.includes('optus')) {
-        suggestions.add('telecommunications');
-        suggestions.add('internet');
-      }
-      if (desc.includes('insurance') || desc.includes('cover')) {
-        suggestions.add('insurance');
-      }
+      // Add some common business expense patterns if they appear frequently
       if (desc.includes('subscription') || desc.includes('monthly') || desc.includes('annual')) {
         suggestions.add('subscriptions');
       }
+      if (desc.includes('internet') || desc.includes('phone') || desc.includes('mobile')) {
+        suggestions.add('telecommunications');
+      }
+      if (desc.includes('office') || desc.includes('stationery')) {
+        suggestions.add('office supplies');
+      }
     });
     
-    // Add frequent merchants (appearing 3+ times)
-    Object.entries(merchantCounts)
-      .filter(([word, count]) => count >= 3)
-      .sort(([,a], [,b]) => b - a)
-      .slice(0, 10)
-      .forEach(([word]) => {
-        suggestions.add(word.toUpperCase());
+    // If we don't have enough suggestions, add the most common industry terms
+    if (suggestions.size < 6) {
+      relevantTerms.slice(0, 8 - suggestions.size).forEach(term => {
+        suggestions.add(term);
       });
+    }
     
-    return Array.from(suggestions).slice(0, 12); // Limit to 12 suggestions
+    return Array.from(suggestions).slice(0, 8); // Limit to 8 suggestions
   }, []);
 
   // Helper functions for transaction search
@@ -393,14 +416,14 @@ export default function Dashboard() {
           console.log("Categorizing additional transactions...");
           const categorizationResult = await categorizeTransactions(aiInput);
           
-          // Merge new categorized transactions with existing ones
+          // Merge new categorized transactions with existing ones (new ones at the top)
           const mergedCategorized = [
-            ...(categorizedTransactions || []), 
-            ...(categorizationResult.transactions || [])
+            ...(categorizationResult.transactions || []),
+            ...(categorizedTransactions || [])
           ];
           const mergedMaybe = [
-            ...(maybeTransactions || []), 
-            ...(categorizationResult.maybeTransactions || [])
+            ...(categorizationResult.maybeTransactions || []),
+            ...(maybeTransactions || [])
           ];
           
           setCategorizedTransactions(mergedCategorized);
@@ -495,7 +518,7 @@ export default function Dashboard() {
         }
         
         // Generate search suggestions based on the raw transactions
-        const searchSuggestions = generateIndustrySearchSuggestions(rawTransactions || []);
+        const searchSuggestions = generateIndustrySearchSuggestions(rawTransactions || [], selectedIndustry);
         
         if (searchSuggestions.length > 0) {
           message += `\n\n📍 **Quick Search Suggestions** (based on your transaction patterns):\n`;
@@ -753,6 +776,8 @@ When they ask about specific merchants or transaction types, direct them to use 
                 maybeTransactions={maybeTransactions}
                 onApproveMaybeTransaction={approveMaybeTransaction}
                 onRemoveMaybeTransaction={removeMaybeTransaction}
+                onDeleteTransaction={deleteTransaction}
+                onFlipTransactionCategory={flipTransactionCategory}
               />
             </div>
             <div className="h-full max-h-[calc(100vh-12rem)] min-h-[500px]">

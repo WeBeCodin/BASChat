@@ -80,7 +80,26 @@ export default function ChatPanel({ messages, onSendMessage, isLoading }: ChatPa
                       : 'bg-secondary'
                   )}
                 >
-                  {message.content}
+                  <div className="whitespace-pre-wrap break-words">
+                    {message.content.split('\n').map((line, lineIndex) => {
+                      // Handle markdown-style bold text
+                      const parts = line.split(/(\*\*.*?\*\*)/);
+                      return (
+                        <div key={lineIndex} className={lineIndex > 0 ? 'mt-2' : ''}>
+                          {parts.map((part, partIndex) => {
+                            if (part.startsWith('**') && part.endsWith('**')) {
+                              return (
+                                <strong key={partIndex} className="font-semibold">
+                                  {part.slice(2, -2)}
+                                </strong>
+                              );
+                            }
+                            return part;
+                          })}
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
                 {message.role === 'user' && (
                   <Avatar className="h-8 w-8">
