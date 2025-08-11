@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import FinancialSummary from "./financial-summary";
 import TransactionsTable from "./transactions-table";
+import TransactionSearch from "./transaction-search";
 import ChatPanel from "./chat-panel";
 
 type ConversationMessage = {
@@ -120,6 +121,41 @@ export default function Dashboard() {
       description: "Transaction excluded from BAS calculations",
     });
   }, [maybeTransactions, toast]);
+
+  // Helper functions for transaction search
+  const addSearchedTransactionsAsIncome = useCallback((transactions: RawTransaction[]) => {
+    const newIncomeTransactions = transactions.map(t => ({
+      ...t,
+      category: "Income" as const,
+      subCategory: "Manual Addition",
+      confidence: 1.0
+    }));
+    
+    const updatedCategorizedTransactions = [...(categorizedTransactions || []), ...newIncomeTransactions];
+    setCategorizedTransactions(updatedCategorizedTransactions);
+    
+    toast({
+      title: "Added to Income",
+      description: `Added ${transactions.length} transactions as income`,
+    });
+  }, [categorizedTransactions, toast]);
+
+  const addSearchedTransactionsAsExpenses = useCallback((transactions: RawTransaction[]) => {
+    const newExpenseTransactions = transactions.map(t => ({
+      ...t,
+      category: "Expenses" as const,
+      subCategory: "Manual Addition", 
+      confidence: 1.0
+    }));
+    
+    const updatedCategorizedTransactions = [...(categorizedTransactions || []), ...newExpenseTransactions];
+    setCategorizedTransactions(updatedCategorizedTransactions);
+    
+    toast({
+      title: "Added to Expenses", 
+      description: `Added ${transactions.length} transactions as expenses`,
+    });
+  }, [categorizedTransactions, toast]);
 
   const extractWithHybridService = async (file: File) => {
     const formData = new FormData();
@@ -289,10 +325,28 @@ export default function Dashboard() {
       setIsChatLoading(true);
 
       try {
-        const financialData = JSON.stringify(categorizedTransactions, null, 2);
+        // Include both categorized transactions and raw transaction data for accurate searching
+        const categorizedData = JSON.stringify(categorizedTransactions, null, 2);
+        const rawData = rawTransactions ? JSON.stringify(rawTransactions.slice(0, 10), null, 2) : ""; // Include sample of raw data
+        
+        const enhancedFinancialData = `
+CATEGORIZED TRANSACTIONS (${categorizedTransactions.length} transactions):
+${categorizedData}
+
+RAW TRANSACTION DATA SAMPLE (Total: ${rawTransactions?.length || 0} transactions):
+${rawData}
+
+TRANSACTION SEARCH CAPABILITY:
+The user can search through ALL ${rawTransactions?.length || 0} raw transactions using the Transaction Search tool above. 
+When they ask about specific merchants or transaction types, direct them to use the search functionality.
+        `;
+        
         const result = await basAnalysisChatbot({
-          documentInsights,
-          financialData,
+          documentInsights: {
+            ...documentInsights,
+            transactionCount: rawTransactions?.length || documentInsights.transactionCount
+          },
+          financialData: enhancedFinancialData,
           userQuery: message,
           conversationHistory: conversation,
         });
@@ -318,7 +372,7 @@ export default function Dashboard() {
         setIsChatLoading(false);
       }
     },
-    [conversation, categorizedTransactions, toast, documentInsights]
+    [conversation, categorizedTransactions, rawTransactions, toast, documentInsights]
   );
 
   const { financialSummary, basCalculations } = useMemo(() => {
@@ -434,6 +488,11 @@ export default function Dashboard() {
               <FinancialSummary
                 summary={financialSummary}
                 bas={basCalculations}
+              />
+              <TransactionSearch
+                rawTransactions={rawTransactions}
+                onAddToIncome={addSearchedTransactionsAsIncome}
+                onAddToExpenses={addSearchedTransactionsAsExpenses}
               />
               <TransactionsTable 
                 transactions={categorizedTransactions} 
