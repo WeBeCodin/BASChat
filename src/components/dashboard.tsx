@@ -161,6 +161,27 @@ export default function Dashboard() {
     });
   }, [categorizedTransactions, toast]);
 
+  // Handler for transaction-specific chat
+  const handleChatAboutTransaction = useCallback((transaction: Transaction) => {
+    if (!industry) return;
+    
+    const transactionMessage = `Please help me understand this transaction:
+
+**Date:** ${transaction.date}
+**Description:** ${transaction.description}
+**Amount:** ${new Intl.NumberFormat('en-AU', { style: 'currency', currency: 'AUD' }).format(transaction.amount)}
+**Category:** ${transaction.category}
+**Sub-Category:** ${transaction.subCategory || 'N/A'}
+
+How can this transaction be optimized for my BAS and tax requirements as a ${industry} business?`;
+
+    const newConversation: ConversationMessage[] = [
+      ...conversation,
+      { role: "user", content: transactionMessage },
+    ];
+    setConversation(newConversation);
+  }, [conversation, industry, toast]);
+
   // Function to analyze transactions and suggest search terms
   const generateIndustrySearchSuggestions = useCallback((transactions: RawTransaction[], selectedIndustry: string): string[] => {
     if (!transactions || transactions.length === 0) return [];
@@ -570,6 +591,8 @@ export default function Dashboard() {
         const rawData = rawTransactions ? JSON.stringify(rawTransactions.slice(0, 10), null, 2) : ""; // Include sample of raw data
         
         const enhancedFinancialData = `
+INDUSTRY: ${industry}
+
 CATEGORIZED TRANSACTIONS (${categorizedTransactions.length} transactions):
 ${categorizedData}
 
@@ -778,6 +801,7 @@ When they ask about specific merchants or transaction types, direct them to use 
                 onRemoveMaybeTransaction={removeMaybeTransaction}
                 onDeleteTransaction={deleteTransaction}
                 onFlipTransactionCategory={flipTransactionCategory}
+                onChatAboutTransaction={handleChatAboutTransaction}
               />
             </div>
             <div className="h-full max-h-[calc(100vh-12rem)] min-h-[500px]">
