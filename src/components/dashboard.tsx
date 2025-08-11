@@ -236,21 +236,30 @@ export default function Dashboard() {
         result?.maybeTransactions?.length || 0
       );
 
-      if (result && result.transactions.length > 0) {
-        setCategorizedTransactions(result.transactions);
+      if (result && (result.transactions.length > 0 || (result.maybeTransactions && result.maybeTransactions.length > 0))) {
+        setCategorizedTransactions(result.transactions || []);
         setMaybeTransactions(result.maybeTransactions || []);
         setStep("ready");
         
+        const categorizedCount = result.transactions?.length || 0;
         const maybeCount = result.maybeTransactions?.length || 0;
-        const maybeMessage = maybeCount > 0 
-          ? ` I've also identified ${maybeCount} transactions that need your review - these appear in orange and require your approval.`
-          : "";
+        
+        let message = "I've analyzed your transactions based on your industry.";
+        
+        if (categorizedCount > 0 && maybeCount > 0) {
+          message += ` I've categorized ${categorizedCount} transactions with confidence and identified ${maybeCount} transactions that need your review - these appear in orange and require your approval.`;
+        } else if (categorizedCount > 0) {
+          message += ` I've categorized ${categorizedCount} transactions with confidence.`;
+        } else if (maybeCount > 0) {
+          message += ` All ${maybeCount} transactions need your review - they appear in orange and require your approval to determine if they're business income or expenses.`;
+        }
+        
+        message += " How can I help you with your BAS analysis?";
           
         setConversation([
           {
             role: "bot",
-            content:
-              `I've analyzed and categorized your transactions based on your industry. Here is a summary.${maybeMessage} How can I help you with your BAS analysis?`,
+            content: message,
           },
         ]);
       } else {
