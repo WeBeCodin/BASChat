@@ -1,4 +1,4 @@
-import {z} from 'genkit';
+import { z } from "genkit";
 
 /**
  * @fileOverview
@@ -11,28 +11,28 @@ import {z} from 'genkit';
 export const BasAnalysisChatbotInputSchema = z.object({
   financialData: z
     .string()
-    .describe('Financial transactions data extracted from uploaded PDFs.'),
+    .describe("Financial transactions data extracted from uploaded PDFs."),
   documentInsights: z.object({
     pageCount: z.number(),
     transactionCount: z.number(),
   }),
-  userQuery: z.string().describe('The user’s query or feedback.'),
+  userQuery: z.string().describe("The user’s query or feedback."),
   conversationHistory: z
     .array(
       z.object({
-        role: z.enum(['user', 'bot']),
+        role: z.enum(["user", "bot"]),
         content: z.string(),
       })
     )
     .optional()
-    .describe('Previous conversation history.'),
+    .describe("Previous conversation history."),
 });
 export type BasAnalysisChatbotInput = z.infer<
   typeof BasAnalysisChatbotInputSchema
 >;
 
 export const BasAnalysisChatbotOutputSchema = z.object({
-  response: z.string().describe('The chatbot’s response to the user query.'),
+  response: z.string().describe("The chatbot’s response to the user query."),
 });
 export type BasAnalysisChatbotOutput = z.infer<
   typeof BasAnalysisChatbotOutputSchema
@@ -51,21 +51,21 @@ export type ExtractFinancialDataInput = z.infer<
 >;
 
 export const RawTransactionSchema = z.object({
-  date: z.string().describe('The date of the transaction (YYYY-MM-DD).'),
-  description: z.string().describe('A description of the transaction.'),
-  amount: z.number().describe('The amount of the transaction.'),
+  date: z.string().describe("The date of the transaction (YYYY-MM-DD)."),
+  description: z.string().describe("A description of the transaction."),
+  amount: z.number().describe("The amount of the transaction."),
 });
 export type RawTransaction = z.infer<typeof RawTransactionSchema>;
 
 export const ExtractFinancialDataOutputSchema = z.object({
   transactions: z
     .array(RawTransactionSchema)
-    .describe('An array of extracted raw financial transactions.'),
-  pageCount: z.number().describe('The total number of pages in the document.'),
+    .describe("An array of extracted raw financial transactions."),
+  pageCount: z.number().describe("The total number of pages in the document."),
   transactionCount: z
     .number()
     .describe(
-      'The total number of financial transactions found in the document.'
+      "The total number of financial transactions found in the document."
     ),
 });
 export type ExtractFinancialDataOutput = z.infer<
@@ -74,38 +74,48 @@ export type ExtractFinancialDataOutput = z.infer<
 
 // Schemas for categorize-transactions.ts
 export const CategorizeTransactionsInputSchema = z.object({
-    rawTransactions: z.array(RawTransactionSchema).describe("An array of raw transaction data."),
-    industry: z.string().describe("The user's selected industry."),
+  rawTransactions: z
+    .array(RawTransactionSchema)
+    .describe("An array of raw transaction data."),
+  industry: z.string().describe("The user's selected industry."),
 });
-export type CategorizeTransactionsInput = z.infer<typeof CategorizeTransactionsInputSchema>;
-
+export type CategorizeTransactionsInput = z.infer<
+  typeof CategorizeTransactionsInputSchema
+>;
 
 export const TransactionSchema = z.object({
-  date: z.string().describe('The date of the transaction (YYYY-MM-DD).'),
-  description: z.string().describe('A description of the transaction.'),
-  amount: z.number().describe('The amount of the transaction.'),
+  date: z.string().describe("The date of the transaction (YYYY-MM-DD)."),
+  description: z.string().describe("A description of the transaction."),
+  amount: z.number().describe("The amount of the transaction."),
   category: z
     .string()
     .describe(
-      'The category of the transaction (e.g., Income, Expenses, Maybe, etc.).'
+      "The category of the transaction (e.g., Income, Expenses, Maybe, etc.)."
     ),
   subCategory: z
     .string()
     .describe(
-      'The sub-category of the transaction (e.g., Sales, Rent, Utilities, etc.).'
+      "The sub-category of the transaction (e.g., Sales, Rent, Utilities, etc.)."
     )
     .optional(),
   confidence: z
     .number()
     .min(0)
     .max(1)
-    .describe('Confidence level of the categorization (0-1).')
+    .describe("Confidence level of the categorization (0-1).")
     .optional(),
 });
 export type Transaction = z.infer<typeof TransactionSchema>;
 
 export const CategorizeTransactionsOutputSchema = z.object({
-    transactions: z.array(TransactionSchema).describe("An array of categorized financial transactions."),
-    maybeTransactions: z.array(TransactionSchema).describe("An array of uncertain transactions that need user review.").optional()
+  transactions: z
+    .array(TransactionSchema)
+    .describe("An array of categorized financial transactions."),
+  maybeTransactions: z
+    .array(TransactionSchema)
+    .describe("An array of uncertain transactions that need user review.")
+    .optional(),
 });
-export type CategorizeTransactionsOutput = z.infer<typeof CategorizeTransactionsOutputSchema>;
+export type CategorizeTransactionsOutput = z.infer<
+  typeof CategorizeTransactionsOutputSchema
+>;

@@ -1,4 +1,4 @@
-'use server';
+"use server";
 
 /**
  * @fileOverview An AI chatbot for BAS analysis.
@@ -6,13 +6,13 @@
  * - basAnalysisChatbot - A function that handles the interaction with the chatbot.
  */
 
-import {ai} from '@/ai/genkit';
+import { ai } from "@/ai/genkit";
 import {
   BasAnalysisChatbotInputSchema,
   BasAnalysisChatbotOutputSchema,
   BasAnalysisChatbotInput,
   BasAnalysisChatbotOutput,
-} from '@/ai/schemas';
+} from "@/ai/schemas";
 
 export async function basAnalysisChatbot(
   input: BasAnalysisChatbotInput
@@ -21,9 +21,9 @@ export async function basAnalysisChatbot(
 }
 
 const chatbotPrompt = ai.definePrompt({
-  name: 'basAnalysisChatbotPrompt',
-  input: {schema: BasAnalysisChatbotInputSchema},
-  output: {schema: BasAnalysisChatbotOutputSchema},
+  name: "basAnalysisChatbotPrompt",
+  input: { schema: BasAnalysisChatbotInputSchema },
+  output: { schema: BasAnalysisChatbotOutputSchema },
   prompt: `You are BAS Hero, a financial expert specializing in Australian taxation for sole traders. Your primary function is to assist users with BAS (Business Activity Statement) analysis and industry-specific tax guidance.
 
 You have been provided with the following information:
@@ -109,15 +109,20 @@ When users ask about a specific transaction, provide:
 
 const basAnalysisChatbotFlow = ai.defineFlow(
   {
-    name: 'basAnalysisChatbotFlow',
+    name: "basAnalysisChatbotFlow",
     inputSchema: BasAnalysisChatbotInputSchema,
     outputSchema: BasAnalysisChatbotOutputSchema,
   },
-  async input => {
+  async (input) => {
     try {
-      const {output} = await chatbotPrompt(input);
+      console.log("basAnalysisChatbotFlow input:", input);
+      
+      const { output } = await chatbotPrompt(input);
+
+      console.log("chatbotPrompt output:", output);
 
       if (!output?.response) {
+        console.log("No response from chatbot prompt");
         return {
           response:
             "I'm sorry, but I encountered an issue and can't provide a response right now. Please try again later.",
@@ -128,7 +133,7 @@ const basAnalysisChatbotFlow = ai.defineFlow(
         response: output.response,
       };
     } catch (error) {
-      console.error('Error in basAnalysisChatbotFlow:', error);
+      console.error("Error in basAnalysisChatbotFlow:", error);
       return {
         response:
           "I'm sorry, I'm having trouble connecting to the AI service at the moment. Please try again in a little while.",
