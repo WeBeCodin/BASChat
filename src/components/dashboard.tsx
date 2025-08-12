@@ -1,7 +1,6 @@
 "use client";
 
 import type { RawTransaction, Transaction } from "@/ai/schemas";
-import { categorizeTransactions } from "@/ai/flows/categorize-transactions";
 import React, { useState, useMemo, useCallback } from "react";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -563,7 +562,20 @@ How can this transaction be optimized for my BAS and tax requirements as a ${ind
           };
 
           console.log("Categorizing additional transactions...");
-          const categorizationResult = await categorizeTransactions(aiInput);
+          
+          const categorizationResponse = await fetch('/api/categorize', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(aiInput),
+          });
+
+          if (!categorizationResponse.ok) {
+            throw new Error(`HTTP error! status: ${categorizationResponse.status}`);
+          }
+
+          const categorizationResult = await categorizationResponse.json();
 
           // Merge new categorized transactions with existing ones (new ones at the top)
           const mergedCategorized = [
@@ -651,7 +663,19 @@ How can this transaction be optimized for my BAS and tax requirements as a ${ind
         )
       );
 
-      const result = await categorizeTransactions(aiInput);
+      const categorizationResponse = await fetch('/api/categorize', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(aiInput),
+      });
+
+      if (!categorizationResponse.ok) {
+        throw new Error(`HTTP error! status: ${categorizationResponse.status}`);
+      }
+
+      const result = await categorizationResponse.json();
 
       console.log("Categorization result:", result);
       console.log(
