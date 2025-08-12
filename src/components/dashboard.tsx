@@ -1,7 +1,6 @@
 "use client";
 
 import type { RawTransaction, Transaction } from "@/ai/schemas";
-import { basAnalysisChatbot } from "@/ai/flows/bas-analysis-chatbot";
 import { categorizeTransactions } from "@/ai/flows/categorize-transactions";
 import React, { useState, useMemo, useCallback } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -769,7 +768,7 @@ The user can search through ALL ${
 When they ask about specific merchants or transaction types, direct them to use the search functionality.
         `;
 
-        console.log("Sending to chatbot:", {
+        const chatInput = {
           documentInsights: {
             ...documentInsights,
             transactionCount:
@@ -778,20 +777,25 @@ When they ask about specific merchants or transaction types, direct them to use 
           financialData: enhancedFinancialData,
           userQuery: message,
           conversationHistory: conversation,
+        };
+
+        console.log("Sending to chatbot API:", chatInput);
+
+        const response = await fetch('/api/chat', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(chatInput),
         });
 
-        const result = await basAnalysisChatbot({
-          documentInsights: {
-            ...documentInsights,
-            transactionCount:
-              rawTransactions?.length || documentInsights.transactionCount,
-          },
-          financialData: enhancedFinancialData,
-          userQuery: message,
-          conversationHistory: conversation,
-        });
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const result = await response.json();
         
-        console.log("Chatbot response:", result);
+        console.log("Chatbot API response:", result);
         
         setConversation([
           ...newConversation,
