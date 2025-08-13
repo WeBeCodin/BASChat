@@ -6,23 +6,33 @@ import {
 
 export async function POST(request: NextRequest) {
   try {
+    console.log("=== Categorization API Route Starting ===");
+    
     const body = await request.json();
-    console.log("Categorization API Route received:", body);
+    console.log("Categorization API Route received body keys:", Object.keys(body));
+    console.log("Transaction count:", body?.rawTransactions?.length);
+    console.log("Industry:", body?.industry);
     
     const input: CategorizeTransactionsInput = body;
     
+    console.log("About to call categorizeTransactionsAPI...");
     const result = await categorizeTransactionsAPI(input);
     
-    console.log("Categorization API Route result:", result);
+    console.log("Categorization API Route result success:", !!result);
     
     return NextResponse.json(result);
   } catch (error) {
-    console.error("Categorization API Route error:", error);
+    console.error("=== Categorization API Route ERROR ===");
+    console.error("Error name:", error instanceof Error ? error.name : "Unknown");
+    console.error("Error message:", error instanceof Error ? error.message : String(error));
+    console.error("Error stack:", error instanceof Error ? error.stack : "No stack");
+    
     return NextResponse.json(
       {
         transactions: [],
         maybeTransactions: undefined,
         error: "Failed to categorize transactions",
+        errorDetails: error instanceof Error ? error.message : String(error),
       },
       { status: 500 }
     );
@@ -33,13 +43,14 @@ async function categorizeTransactionsAPI(
   input: CategorizeTransactionsInput
 ): Promise<CategorizeTransactionsOutput> {
   try {
-    console.log(
-      "categorizeTransactions called with:",
-      JSON.stringify(input, null, 2)
-    );
+    console.log("=== categorizeTransactionsAPI Starting ===");
+    console.log("Input transaction count:", input.rawTransactions?.length);
+    console.log("Input industry:", input.industry);
 
     // Use direct Google AI API instead of Genkit (which was causing issues)
     const apiKey = process.env.GOOGLE_GENAI_API_KEY;
+    console.log("API key exists:", !!apiKey);
+    console.log("API key length:", apiKey?.length || 0);
 
     if (!apiKey) {
       throw new Error("GOOGLE_GENAI_API_KEY not found");
