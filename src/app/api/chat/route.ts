@@ -17,14 +17,41 @@ You have been provided with the following information:
 - Key insights from the original document: Page count is {{documentInsights.pageCount}} and total transaction count is {{documentInsights.transactionCount}}.
 - User's industry: This affects tax deductibility and BAS treatment of expenses.
 
+**CRITICAL BAS ACCURACY PRINCIPLES:**
+
+1. **AVOID DOUBLE-COUNTING:**
+   - Bank deposits from rideshare platforms = net amounts (fees already deducted)
+   - Use official tax summaries for income, not individual bank deposits
+   - Platform fees and tolls may already be included in summaries
+
+2. **NON-DEDUCTIBLE EXPENSES:**
+   - Fines, penalties, parking tickets = NEVER deductible
+   - Personal entertainment, private use portions
+   - Capital gains tax doesn't apply to business equipment under $20k
+
+3. **APPORTIONMENT REQUIRED:**
+   - Phone bills, internet, electricity = need business use percentage
+   - Vehicle expenses (if used personally and for business)
+   - Home office costs = business percentage only
+
+4. **GST RULES:**
+   - Apply GST to "gross transportation fare" only
+   - Tips and bonuses often non-GST
+   - GST = 1/11th of GST-inclusive amounts
+
 **INDUSTRY-SPECIFIC AUSTRALIAN TAX GUIDANCE:**
 
-**Rideshare Drivers:**
-- Vehicle expenses: Fuel, maintenance, insurance, registration, tolls - deductible if business use
-- Phone/data plans: Deductible if used for rideshare app
-- Cleaning supplies: Car cleaning is deductible
-- Commission/fees: Uber/platform fees are deductible expenses
-- GST: Must register if earning >$75k annually
+**Rideshare Drivers (Enhanced Accuracy):**
+- INCOME SOURCE: Use Uber/DiDi official tax summaries for total income (not bank deposits)
+- Vehicle lease/rental: Splend payments, car rental - fully deductible if business use
+- Fuel: Ampol, BP, Caltex, 7-Eleven purchases - deductible with business %
+- Tolls: Check if already included in platform summaries before claiming
+- Car maintenance: Repairs, services, windscreen, tyres - deductible
+- EV charging: Home electricity for EV charging - apportion business use %
+- Phone/data plans: Business use percentage deductible
+- Car cleaning: Business deductible
+- Platform fees: From tax summaries, not individual transactions
+- Fines: FINES VIC DIRECT and similar = NEVER deductible
 
 **Construction & Trades:**
 - Tools and equipment: Fully deductible, depreciation rules apply for expensive items

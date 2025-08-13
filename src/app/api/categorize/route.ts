@@ -115,16 +115,34 @@ async function categorizeTransactionsAPI(
 function getIndustrySpecificGuidance(industry: string): string {
   const guidance: { [key: string]: string } = {
     "Rideshare": `
+CRITICAL RIDESHARE BAS RULES:
+1. INCOME: Use GROSS FARES from official tax summaries (not bank deposits)
+2. AVOID DOUBLE-COUNTING: Platform fees and tolls already deducted from deposits
+3. GST: Only on "Gross transportation fare" - excludes tips/rewards
+4. APPORTIONMENT: Phone, electricity, insurance need business % allocation
+
 INCOME CATEGORIES:
-- Gross Fares: UBER/DIDI payments, ride income, delivery fees
-- Tips & Bonuses: Cash tips, platform bonuses, surge pricing extras
+- Gross Fares: Official Uber/DiDi tax summary amounts (before fees)
+- Tips & Bonuses: Cash tips, surge pricing (usually non-GST)
 
 EXPENSE SUBCATEGORIES:
-- Vehicle Expenses: Fuel, tolls, car maintenance, insurance, registration
-- Equipment & Tools: Phone mounts, chargers, dashcam, GPS devices  
-- Professional Services: Platform fees (Uber/Didi commissions), background checks
-- Communications: Phone bills, data plans used for rideshare
-- Vehicle Cleaning: Car wash, interior cleaning supplies`,
+- Vehicle Lease/Rental: Splend, other car rental companies, car loan payments
+- Fuel: Ampol, BP, Caltex, 7-Eleven (if fuel purchased)
+- Tolls: Linkt, E-Way tolls (check if already in platform summary)
+- Vehicle Cleaning: Car wash services, cleaning supplies
+- Vehicle Maintenance: Repairs, services, windscreen, tyres, parts
+- Electricity: EV charging at home (apportion business use %)
+- Communications: Phone bills, internet, data plans (apportion business use %)
+- Platform Fees: Uber/DiDi service fees (from tax summaries)
+- Equipment & Tools: Phone mounts, chargers, dashcam, GPS devices
+- Fines: NOT DEDUCTIBLE - exclude from BAS completely
+- Professional Services: Background checks, license renewals
+
+SPECIAL HANDLING:
+- Use rideshare tax summaries as primary income source
+- Bank deposits = net amounts after fees already deducted
+- Exclude fines (FINES VIC DIRECT) - not deductible
+- Electricity/phone require business use percentage calculation`,
 
     "Construction & Trades": `
 INCOME CATEGORIES:
@@ -198,19 +216,41 @@ async function processBatch(
     input.industry
   } Business Activity Statement (BAS) categorization for Australian sole traders.
 
+CRITICAL BAS ACCURACY RULES:
+
+1. **EXCLUDE NON-DEDUCTIBLE ITEMS:**
+   - Fines, penalties, parking tickets (FINES VIC DIRECT, etc.) = NOT DEDUCTIBLE
+   - Personal purchases, entertainment, personal travel
+   - Private use portions of mixed-use items
+
+2. **HANDLE APPORTIONMENT ITEMS:**
+   - Phone bills, internet, electricity = Need business use % (mark as "Maybe" for user review)
+   - Vehicle expenses (if used for personal and business)
+   - Home office costs
+
+3. **AVOID DOUBLE-COUNTING:**
+   - For rideshare: Platform deposits = net amounts (fees already deducted)
+   - Toll charges may already be included in platform summaries
+   - Service fees from platform summaries vs individual transactions
+
 CATEGORIZATION RULES:
 
 **INCOME Categories:**
 - "Income": All business income including primary revenue, tips, bonuses, government payments
 
 **EXPENSE Subcategories (choose the most specific one):**
-- "Vehicle Expenses": Fuel, maintenance, insurance, registration, tolls, repairs, car wash
-- "Equipment & Tools": Professional equipment, tools, technology, software, depreciation
-- "Office Expenses": Stationery, supplies, printing, postage, office rent, utilities
-- "Professional Services": Legal fees, accounting, consulting, professional memberships, licenses
-- "Insurance": Professional indemnity, public liability, business insurance
-- "Training & Development": Courses, certifications, conferences, professional development
-- "Communications": Phone bills, internet, mobile data, communication services
+- "Vehicle Lease/Rental": Car lease payments, rental fees (Splend, etc.)
+- "Fuel": Petrol, diesel, LPG, charging costs
+- "Vehicle Maintenance": Repairs, services, parts, tyres, windscreen
+- "Tolls": Road tolls, bridge tolls (check for platform duplicates)
+- "Vehicle Cleaning": Car wash, detailing, cleaning supplies
+- "Electricity": EV charging, office power (NEEDS APPORTIONMENT - mark as Maybe)
+- "Equipment & Tools": Professional equipment, tools, technology, software
+- "Office Expenses": Stationery, supplies, printing, postage, office rent
+- "Professional Services": Legal fees, accounting, consulting, licenses, platform fees
+- "Insurance": Vehicle, professional indemnity, public liability, business insurance
+- "Training & Development": Courses, certifications, conferences, professional development  
+- "Communications": Phone bills, internet, data plans (NEEDS APPORTIONMENT - mark as Maybe)
 - "Travel & Accommodation": Business travel, accommodation, meals while traveling
 - "Marketing & Advertising": Website costs, advertising, business cards, promotional materials
 - "Bank Fees": Transaction fees, account fees, merchant fees, payment processing
@@ -218,20 +258,26 @@ CATEGORIZATION RULES:
 - "Safety Equipment": PPE, safety gear, protective equipment
 - "Other Business Expenses": Miscellaneous legitimate business expenses
 
-**MAYBE Category:**
-- "Uncertain Business Expense": Transactions that could be business-related but need user review
+**MANDATORY EXCLUSIONS (categorize as "Personal" - not business deductible):**
+- "Personal": Fines, penalties, parking tickets, personal entertainment, private purchases
+
+**MAYBE Category (requires user review for apportionment or clarification):**
+- "Uncertain Business Expense": Mixed business/personal use items, unclear transactions
 - "Personal/Business Mixed": Transactions that might be partially deductible
 
 **INDUSTRY-SPECIFIC GUIDANCE for ${input.industry}:**
 ${getIndustrySpecificGuidance(input.industry)}
 
 **INSTRUCTIONS:**
-1. Analyze each transaction carefully
-2. For expenses, assign the most specific subcategory that matches
-3. For income, use category "Income" and appropriate subcategory
-4. Use "Maybe" category only when genuinely uncertain about business purpose
-5. Include confidence scores (0.0-1.0)
-6. Preserve original transaction details exactly
+1. **Apply BAS-specific rules**: Exclude fines/penalties, identify apportionment items
+2. **Industry-specific analysis**: Use the guidance below for nuanced categorization
+3. **Avoid double-counting**: Be aware of platform fees vs individual transactions
+4. **For expenses, assign the most specific subcategory that matches**
+5. **For income, use category "Income" and appropriate subcategory**
+6. **Use "Personal" for non-deductible items (fines, personal purchases)**
+7. **Use "Maybe" for mixed-use items needing apportionment or unclear transactions**
+8. **Include confidence scores (0.0-1.0)**
+9. **Preserve original transaction details exactly**
 
 Transactions to categorize:
 ${JSON.stringify(input.rawTransactions, null, 2)}
@@ -243,8 +289,8 @@ Return a JSON object with this exact structure:
       "date": "YYYY-MM-DD",
       "description": "original description", 
       "amount": 0.00,
-      "category": "Income or Expenses or Maybe",
-      "subCategory": "specific subcategory from the expense list above, or 'Business Income' for income",
+      "category": "Income or Expenses or Maybe or Personal",
+      "subCategory": "specific subcategory from the expense list above, or 'Business Income' for income, or 'Non-deductible' for personal",
       "confidence": 0.85
     }
   ]

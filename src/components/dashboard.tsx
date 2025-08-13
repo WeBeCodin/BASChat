@@ -29,6 +29,7 @@ import TransactionsTable from "./transactions-table";
 import TransactionSearch from "./transaction-search";
 import ChatPanel from "./chat-panel";
 import { ProfitLossReport } from "./profit-loss-report";
+import { BasReport } from "./bas-report";
 
 type ConversationMessage = {
   role: "user" | "bot";
@@ -60,7 +61,7 @@ type AppStep =
   | "adding_document"
   | "ready";
 
-type DashboardView = "transactions" | "profit-loss";
+type DashboardView = "transactions" | "profit-loss" | "bas-report";
 
 const industries = [
   { name: "Rideshare", icon: Car },
@@ -1173,9 +1174,10 @@ How can this transaction be optimized for my BAS and tax requirements as a ${ind
         return (
           <Tabs value={currentView} onValueChange={(value) => setCurrentView(value as DashboardView)} className="h-full">
             <div className="flex justify-center mb-6">
-              <TabsList className="grid w-[400px] grid-cols-2">
+              <TabsList className="grid w-[600px] grid-cols-3">
                 <TabsTrigger value="transactions">Transactions & Chat</TabsTrigger>
-                <TabsTrigger value="profit-loss">Profit & Loss Report</TabsTrigger>
+                <TabsTrigger value="profit-loss">Profit & Loss</TabsTrigger>
+                <TabsTrigger value="bas-report">BAS Report</TabsTrigger>
               </TabsList>
             </div>
             
@@ -1251,6 +1253,12 @@ How can this transaction be optimized for my BAS and tax requirements as a ${ind
             <TabsContent value="profit-loss" className="h-full mt-0">
               {categorizedTransactions && (
                 <ProfitLossReport transactions={categorizedTransactions} />
+              )}
+            </TabsContent>
+            
+            <TabsContent value="bas-report" className="h-full mt-0">
+              {categorizedTransactions && (
+                <BasReport transactions={categorizedTransactions} />
               )}
             </TabsContent>
           </Tabs>
