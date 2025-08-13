@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   UploadCloud,
   LoaderCircle,
@@ -27,6 +28,7 @@ import FinancialSummary from "./financial-summary";
 import TransactionsTable from "./transactions-table";
 import TransactionSearch from "./transaction-search";
 import ChatPanel from "./chat-panel";
+import { ProfitLossReport } from "./profit-loss-report";
 
 type ConversationMessage = {
   role: "user" | "bot";
@@ -58,6 +60,8 @@ type AppStep =
   | "adding_document"
   | "ready";
 
+type DashboardView = "transactions" | "profit-loss";
+
 const industries = [
   { name: "Rideshare", icon: Car },
   { name: "Construction & Trades", icon: Wrench },
@@ -69,6 +73,7 @@ const industries = [
 
 export default function Dashboard() {
   const [step, setStep] = useState<AppStep>("uploading");
+  const [currentView, setCurrentView] = useState<DashboardView>("transactions");
   const [isProcessing, setIsProcessing] = useState(false);
   const [rawTransactions, setRawTransactions] = useState<
     RawTransaction[] | null
@@ -1166,72 +1171,89 @@ How can this transaction be optimized for my BAS and tax requirements as a ${ind
         );
       case "ready":
         return (
-          <div className="grid gap-4 md:gap-8 lg:grid-cols-2 xl:grid-cols-3 h-full">
-            <div className="xl:col-span-2 space-y-4 md:space-y-8">
-              <FinancialSummary
-                summary={financialSummary}
-                bas={basCalculations}
-              />
-
-              {/* Additional Document Upload Button */}
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="font-semibold">Add More Documents</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Upload additional financial documents to include more
-                        transactions in your analysis
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Input
-                        type="file"
-                        className="hidden"
-                        onChange={handleAdditionalFileChange}
-                        accept=".pdf"
-                        id="additional-file-input"
-                      />
-                      <Button
-                        variant="outline"
-                        onClick={() =>
-                          document
-                            .getElementById("additional-file-input")
-                            ?.click()
-                        }
-                        disabled={isProcessing}
-                      >
-                        <UploadCloud className="mr-2 h-4 w-4" />
-                        Upload Additional PDF
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <TransactionSearch
-                rawTransactions={rawTransactions}
-                onAddToIncome={addSearchedTransactionsAsIncome}
-                onAddToExpenses={addSearchedTransactionsAsExpenses}
-              />
-              <TransactionsTable
-                transactions={categorizedTransactions}
-                maybeTransactions={maybeTransactions}
-                onApproveMaybeTransaction={approveMaybeTransaction}
-                onRemoveMaybeTransaction={removeMaybeTransaction}
-                onDeleteTransaction={deleteTransaction}
-                onFlipTransactionCategory={flipTransactionCategory}
-                onChatAboutTransaction={handleChatAboutTransaction}
-              />
+          <Tabs value={currentView} onValueChange={(value) => setCurrentView(value as DashboardView)} className="h-full">
+            <div className="flex justify-center mb-6">
+              <TabsList className="grid w-[400px] grid-cols-2">
+                <TabsTrigger value="transactions">Transactions & Chat</TabsTrigger>
+                <TabsTrigger value="profit-loss">Profit & Loss Report</TabsTrigger>
+              </TabsList>
             </div>
-            <div className="h-full max-h-[calc(100vh-12rem)] min-h-[500px]">
-              <ChatPanel
-                messages={conversation}
-                onSendMessage={handleSendMessage}
-                isLoading={isChatLoading}
-              />
-            </div>
-          </div>
+            
+            <TabsContent value="transactions" className="h-full mt-0">
+              <div className="grid gap-4 md:gap-8 lg:grid-cols-2 xl:grid-cols-3 h-full">
+                <div className="xl:col-span-2 space-y-4 md:space-y-8">
+                  <FinancialSummary
+                    summary={financialSummary}
+                    bas={basCalculations}
+                  />
+
+                  {/* Additional Document Upload Button */}
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="font-semibold">Add More Documents</h3>
+                          <p className="text-sm text-muted-foreground">
+                            Upload additional financial documents to include more
+                            transactions in your analysis
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Input
+                            type="file"
+                            className="hidden"
+                            onChange={handleAdditionalFileChange}
+                            accept=".pdf"
+                            id="additional-file-input"
+                          />
+                          <Button
+                            variant="outline"
+                            onClick={() =>
+                              document
+                                .getElementById("additional-file-input")
+                                ?.click()
+                            }
+                            disabled={isProcessing}
+                          >
+                            <UploadCloud className="mr-2 h-4 w-4" />
+                            Upload Additional PDF
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <TransactionSearch
+                    rawTransactions={rawTransactions}
+                    onAddToIncome={addSearchedTransactionsAsIncome}
+                    onAddToExpenses={addSearchedTransactionsAsExpenses}
+                  />
+                  <TransactionsTable
+                    transactions={categorizedTransactions}
+                    maybeTransactions={maybeTransactions}
+                    onApproveMaybeTransaction={approveMaybeTransaction}
+                    onRemoveMaybeTransaction={removeMaybeTransaction}
+                    onDeleteTransaction={deleteTransaction}
+                    onFlipTransactionCategory={flipTransactionCategory}
+                    onChatAboutTransaction={handleChatAboutTransaction}
+                  />
+                </div>
+                <div className="h-full max-h-[calc(100vh-12rem)] min-h-[500px]">
+                  <ChatPanel
+                    messages={conversation}
+                    onSendMessage={handleSendMessage}
+                    isLoading={isChatLoading}
+                  />
+                </div>
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="profit-loss" className="h-full mt-0">
+              {categorizedTransactions && (
+                <ProfitLossReport transactions={categorizedTransactions} />
+              )}
+            </TabsContent>
+          </Tabs>
         );
       default:
         return null;

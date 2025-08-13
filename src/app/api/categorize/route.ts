@@ -112,28 +112,126 @@ async function categorizeTransactionsAPI(
   }
 }
 
+function getIndustrySpecificGuidance(industry: string): string {
+  const guidance: { [key: string]: string } = {
+    "Rideshare": `
+INCOME CATEGORIES:
+- Gross Fares: UBER/DIDI payments, ride income, delivery fees
+- Tips & Bonuses: Cash tips, platform bonuses, surge pricing extras
+
+EXPENSE SUBCATEGORIES:
+- Vehicle Expenses: Fuel, tolls, car maintenance, insurance, registration
+- Equipment & Tools: Phone mounts, chargers, dashcam, GPS devices  
+- Professional Services: Platform fees (Uber/Didi commissions), background checks
+- Communications: Phone bills, data plans used for rideshare
+- Vehicle Cleaning: Car wash, interior cleaning supplies`,
+
+    "Construction & Trades": `
+INCOME CATEGORIES:
+- Contract Income: Job payments, project fees, hourly rates
+- Material Markups: Markup on materials sold to clients
+
+EXPENSE SUBCATEGORIES:
+- Tools & Equipment: Hand tools, power tools, machinery, depreciation
+- Materials & Supplies: Timber, steel, concrete, fittings, consumables
+- Safety Equipment: PPE, hard hats, boots, safety gear
+- Vehicle Expenses: Work vehicle costs, fuel for job sites
+- Professional Development: Trade courses, certifications, licenses`,
+
+    "NDIS Support Work": `
+INCOME CATEGORIES:
+- Support Services: Client care fees, hourly rates, NDIS plan funding
+- Travel Allowances: Mileage reimbursements, travel time payments
+
+EXPENSE SUBCATEGORIES:
+- Training & Development: Disability care training, first aid courses
+- Vehicle Expenses: Travel between clients, fuel, maintenance
+- Equipment & Supplies: Care equipment, medical supplies, safety items
+- Professional Services: Background checks, NDIS registration fees
+- Insurance: Professional indemnity, public liability insurance`,
+
+    "Truck Driving": `
+INCOME CATEGORIES:
+- Freight Income: Delivery payments, per-km rates, load fees
+- Allowances: Overnight allowances, meal allowances
+
+EXPENSE SUBCATEGORIES:
+- Vehicle Expenses: Fuel, maintenance, tyres, repairs, registration
+- Accommodation & Meals: Overnight stays, meal expenses while away
+- Equipment & Tools: Straps, chains, load securing equipment
+- Professional Services: License renewals, medical certificates
+- Insurance: Vehicle insurance, goods in transit coverage`,
+
+    "Allied Health": `
+INCOME CATEGORIES:
+- Professional Services: Consultation fees, treatment sessions, assessments
+- Training Income: Workshop fees, education services
+
+EXPENSE SUBCATEGORIES:
+- Equipment & Tools: Treatment equipment, software, technology
+- Professional Development: Courses, conferences, continuing education
+- Professional Services: Registration fees, professional body memberships
+- Office Expenses: Clinic rent, utilities, office supplies
+- Insurance: Professional indemnity, public liability insurance`
+  };
+
+  return guidance[industry] || `
+INCOME CATEGORIES:
+- Professional Services: Consultation fees, service income, project payments
+- Product Sales: Product revenue, retail sales
+
+EXPENSE SUBCATEGORIES:
+- Equipment & Tools: Industry-specific equipment, software, tools
+- Professional Development: Training, courses, certifications
+- Office Expenses: Supplies, utilities, communications
+- Professional Services: Licenses, memberships, professional fees
+- Insurance: Business insurance, professional liability
+- Marketing & Advertising: Website, advertising, promotional materials`;
+}
+
 async function processBatch(
   input: CategorizeTransactionsInput,
   apiKey: string
 ): Promise<CategorizeTransactionsOutput> {
-  // Create industry-specific prompt for rideshare transactions with two-pass categorization
+  // Create industry-specific prompt for comprehensive categorization with detailed subcategories
   const firstPassPrompt = `You are a financial analyst specializing in ${
     input.industry
-  } Business Activity Statement (BAS) categorization.
+  } Business Activity Statement (BAS) categorization for Australian sole traders.
 
-FIRST PASS: Categorize transactions only if you are CONFIDENT they belong to specific categories.
+CATEGORIZATION RULES:
 
-For ${input.industry} industry, use these categories only for CLEAR matches:
-- Income: UBER/DIDI payments, tips, bonuses, ride-sharing income
-- Expenses: Fuel, tolls, vehicle costs, phone bills, car wash, repairs, professional fees
+**INCOME Categories:**
+- "Income": All business income including primary revenue, tips, bonuses, government payments
 
-For transactions you're UNCERTAIN about, use:
-- Maybe: Could be business-related but unclear, personal expenses that might be deductible, ambiguous transactions
+**EXPENSE Subcategories (choose the most specific one):**
+- "Vehicle Expenses": Fuel, maintenance, insurance, registration, tolls, repairs, car wash
+- "Equipment & Tools": Professional equipment, tools, technology, software, depreciation
+- "Office Expenses": Stationery, supplies, printing, postage, office rent, utilities
+- "Professional Services": Legal fees, accounting, consulting, professional memberships, licenses
+- "Insurance": Professional indemnity, public liability, business insurance
+- "Training & Development": Courses, certifications, conferences, professional development
+- "Communications": Phone bills, internet, mobile data, communication services
+- "Travel & Accommodation": Business travel, accommodation, meals while traveling
+- "Marketing & Advertising": Website costs, advertising, business cards, promotional materials
+- "Bank Fees": Transaction fees, account fees, merchant fees, payment processing
+- "Materials & Supplies": Industry-specific materials, consumables, supplies
+- "Safety Equipment": PPE, safety gear, protective equipment
+- "Other Business Expenses": Miscellaneous legitimate business expenses
 
-Add confidence scores (0-1) where:
-- 0.9-1.0: Very confident (clear business income/expense)
-- 0.5-0.8: Somewhat confident (could be business-related)
-- 0.0-0.4: Uncertain (needs user review)
+**MAYBE Category:**
+- "Uncertain Business Expense": Transactions that could be business-related but need user review
+- "Personal/Business Mixed": Transactions that might be partially deductible
+
+**INDUSTRY-SPECIFIC GUIDANCE for ${input.industry}:**
+${getIndustrySpecificGuidance(input.industry)}
+
+**INSTRUCTIONS:**
+1. Analyze each transaction carefully
+2. For expenses, assign the most specific subcategory that matches
+3. For income, use category "Income" and appropriate subcategory
+4. Use "Maybe" category only when genuinely uncertain about business purpose
+5. Include confidence scores (0.0-1.0)
+6. Preserve original transaction details exactly
 
 Transactions to categorize:
 ${JSON.stringify(input.rawTransactions, null, 2)}
@@ -145,9 +243,12 @@ Return a JSON object with this exact structure:
       "date": "YYYY-MM-DD",
       "description": "original description", 
       "amount": 0.00,
-      "category": "Income, Expenses, or Maybe",
-      "subCategory": "specific subcategory like Fuel, Tolls, Vehicle Costs, Uncertain Business Expense, etc.",
+      "category": "Income or Expenses or Maybe",
+      "subCategory": "specific subcategory from the expense list above, or 'Business Income' for income",
       "confidence": 0.85
+    }
+  ]
+}
     }
   ]
 }`;
