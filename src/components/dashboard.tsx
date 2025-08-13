@@ -21,6 +21,7 @@ import {
   Heart,
   Truck,
   Stethoscope,
+  Settings,
 } from "lucide-react";
 import FinancialSummary from "./financial-summary";
 import TransactionsTable from "./transactions-table";
@@ -63,6 +64,7 @@ const industries = [
   { name: "NDIS Support Work", icon: Heart },
   { name: "Truck Driving", icon: Truck },
   { name: "Allied Health", icon: Stethoscope },
+  { name: "Other", icon: Settings },
 ];
 
 export default function Dashboard() {
@@ -82,6 +84,9 @@ export default function Dashboard() {
   const [conversation, setConversation] = useState<ConversationMessage[]>([]);
   const [isChatLoading, setIsChatLoading] = useState(false);
   const [industry, setIndustry] = useState<string>("");
+  const [customIndustry, setCustomIndustry] = useState<string>("");
+  const [isGeneratingLexicon, setIsGeneratingLexicon] = useState(false);
+  const [lexiconProgress, setLexiconProgress] = useState<string>("");
   const { toast } = useToast();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -724,6 +729,147 @@ export default function Dashboard() {
     }
   };
 
+  const handleCustomIndustrySelect = async () => {
+    if (!customIndustry || customIndustry === "temp" || !rawTransactions) return;
+
+    try {
+      // First generate the lexicon for the custom industry
+      await generateCustomIndustryLexicon(customIndustry.trim());
+      
+      // Then proceed with normal industry selection using the custom industry name
+      setIndustry(customIndustry.trim());
+      setStep("categorizing");
+
+      console.log("Starting categorization for custom industry:", customIndustry.trim());
+      console.log("Raw transactions count:", rawTransactions?.length);
+
+      const transactionsToProcess = rawTransactions || [];
+      console.log("Processing all transactions:", transactionsToProcess.length);
+
+      const aiInput = {
+        rawTransactions: transactionsToProcess,
+        industry: customIndustry.trim(),
+      };
+
+      const categorizationResponse = await fetch('/api/categorize', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(aiInput),
+      });
+
+      if (!categorizationResponse.ok) {
+        throw new Error(`HTTP error! status: ${categorizationResponse.status}`);
+      }
+
+      const result = await categorizationResponse.json();
+
+      console.log("Categorization result:", result);
+      console.log("Categorized transactions count:", result?.transactions?.length);
+      console.log("Maybe transactions count:", result?.maybeTransactions?.length || 0);
+
+      if (result && (result.transactions.length > 0 || (result.maybeTransactions && result.maybeTransactions.length > 0))) {
+        setCategorizedTransactions(result.transactions || []);
+        setMaybeTransactions(result.maybeTransactions || []);
+        setStep("ready");
+
+        // Generate suggestions for the custom industry
+        const suggestions = generateIndustrySearchSuggestions(rawTransactions, customIndustry.trim());
+        
+        let message = `I've analyzed your transactions based on your ${customIndustry.trim()} industry. I've categorized ${result.transactions?.length || 0} transactions with confidence and identified ${result.maybeTransactions?.length || 0} transactions that need your review - these appear in orange and require your approval.`;
+
+        if (suggestions.length > 0) {
+          message += `\n\n📍 **Quick Search Suggestions** (based on your transaction patterns):\n`;
+          message += suggestions.map(term => `• "${term}"`).join("\n");
+          message += `\n\nUse the Transaction Search tool above to find specific merchants or transaction types from all extracted transactions.`;
+        }
+
+        message += "\n\nYou can now:\n";
+        message += "• Upload additional documents to add more transactions to your analysis\n";
+        message += "• Continue reviewing and categorizing transactions\n";
+        message += "• Ask me questions about your financial data\n\n";
+        message += "Let me know when you're ready to upload more documents or if you need help with your BAS analysis!";
+
+        setConversation([{
+          role: "bot",
+          content: message,
+        }]);
+      } else {
+        throw new Error("Failed to categorize transactions.");
+      }
+    } catch (error) {
+      console.error("Error with custom industry setup:", error);
+      toast({
+        variant: "destructive",
+        title: "Custom Industry Setup Failed",
+        description: "Could not set up the custom industry. Please try again.",
+      });
+      setStep("selecting_industry");
+    }
+  };
+
+  const generateCustomIndustryLexicon = async (industryName: string) => {
+    try {
+      setIsGeneratingLexicon(true);
+      setLexiconProgress("Analyzing industry requirements...");
+      
+      console.log(`Generating lexicon for custom industry: ${industryName}`);
+      
+      const response = await fetch('/api/generate-lexicon', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ industry: industryName }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to generate lexicon');
+      }
+
+      setLexiconProgress("Building industry-specific search terms...");
+      
+      const result = await response.json();
+      
+      setLexiconProgress("Finalizing industry configuration...");
+      
+      console.log(`Generated lexicon for ${industryName}:`, result);
+      
+      // Store the custom industry info (you could save this to localStorage or a database)
+      localStorage.setItem(`custom_industry_${industryName}`, JSON.stringify(result));
+      
+      setLexiconProgress("Complete! Industry lexicon generated successfully.");
+      
+      // Small delay to show completion message
+      setTimeout(() => {
+        setIsGeneratingLexicon(false);
+        setLexiconProgress("");
+        
+        toast({
+          title: "Industry Lexicon Generated",
+          description: `Successfully created custom guidance for ${industryName} business.`,
+        });
+      }, 1000);
+      
+      return result;
+      
+    } catch (error) {
+      console.error("Error generating lexicon:", error);
+      setIsGeneratingLexicon(false);
+      setLexiconProgress("");
+      
+      toast({
+        variant: "destructive",
+        title: "Lexicon Generation Failed",
+        description: error instanceof Error ? error.message : "Could not generate industry lexicon.",
+      });
+      
+      throw error;
+    }
+  };
+
   const handleSendMessage = useCallback(
     async (message: string) => {
       console.log("handleSendMessage called with:", message);
@@ -953,19 +1099,68 @@ How can this transaction be optimized for my BAS and tax requirements as a ${ind
                 This will help us accurately categorize your transactions for
                 BAS analysis.
               </CardDescription>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {industries.map((industry) => (
-                  <Button
-                    key={industry.name}
-                    variant="outline"
-                    className="h-20 flex-col gap-2"
-                    onClick={() => handleIndustrySelect(industry.name)}
-                  >
-                    <industry.icon className="h-6 w-6" />
-                    <span>{industry.name}</span>
-                  </Button>
-                ))}
-              </div>
+              
+              {isGeneratingLexicon ? (
+                <div className="space-y-4">
+                  <LoaderCircle className="h-8 w-8 animate-spin mx-auto" />
+                  <p className="text-lg font-medium">Generating Industry Lexicon</p>
+                  <p className="text-sm text-muted-foreground">{lexiconProgress}</p>
+                  <div className="w-full bg-secondary rounded-full h-2">
+                    <div className="bg-primary h-2 rounded-full animate-pulse" style={{ width: "60%" }}></div>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    {industries.slice(0, -1).map((industry) => (
+                      <Button
+                        key={industry.name}
+                        variant="outline"
+                        className="h-20 flex-col gap-2"
+                        onClick={() => handleIndustrySelect(industry.name)}
+                      >
+                        <industry.icon className="h-6 w-6" />
+                        <span>{industry.name}</span>
+                      </Button>
+                    ))}
+                  </div>
+                  
+                  <div className="border-t pt-6">
+                    <div className="space-y-4">
+                      <Button
+                        variant="outline"
+                        className="h-20 flex-col gap-2 w-full max-w-xs mx-auto"
+                        onClick={() => {
+                          // Toggle custom industry input visibility
+                          setCustomIndustry(customIndustry ? "" : "temp");
+                        }}
+                      >
+                        <Settings className="h-6 w-6" />
+                        <span>Other Industry</span>
+                      </Button>
+                      
+                      {customIndustry !== "" && (
+                        <div className="space-y-3 max-w-sm mx-auto">
+                          <Input
+                            type="text"
+                            placeholder="Enter your industry (e.g., Photography, Tutoring, Consulting)"
+                            value={customIndustry === "temp" ? "" : customIndustry}
+                            onChange={(e) => setCustomIndustry(e.target.value)}
+                            className="text-center"
+                          />
+                          <Button
+                            onClick={() => handleCustomIndustrySelect()}
+                            disabled={!customIndustry || customIndustry === "temp" || customIndustry.trim().length < 3}
+                            className="w-full"
+                          >
+                            Generate Industry Lexicon
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
         );
