@@ -753,8 +753,14 @@ How can this transaction be optimized for my BAS and tax requirements as a ${ind
 
   const handleSendMessage = useCallback(
     async (message: string) => {
-      if (!message.trim() || !categorizedTransactions || !documentInsights)
+      console.log("handleSendMessage called with:", message);
+      console.log("categorizedTransactions:", categorizedTransactions);
+      console.log("documentInsights:", documentInsights);
+      
+      if (!message.trim() || !categorizedTransactions || !documentInsights) {
+        console.log("Early return - missing data");
         return;
+      }
 
       const newConversation: ConversationMessage[] = [
         ...conversation,
