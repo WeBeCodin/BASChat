@@ -68,6 +68,10 @@ export function BasReport({ transactions }: BasReportProps) {
 
   // Calculate BAS summary
   const basSummary = useMemo((): BasSummary => {
+    console.log('BAS Report - Transactions received:', transactions.length);
+    console.log('BAS Report - Sample transactions:', transactions.slice(0, 3));
+    console.log('BAS Report - Filtered transactions:', filteredTransactions.length);
+    
     let businessIncome = 0;
     let tipsAndBonuses = 0;
     let deductibleExpenses = 0;
@@ -76,6 +80,7 @@ export function BasReport({ transactions }: BasReportProps) {
 
     filteredTransactions.forEach(transaction => {
       const amount = Math.abs(transaction.amount);
+      console.log(`Processing transaction: ${transaction.description}, amount: ${amount}, category: ${transaction.category}, subCategory: ${transaction.subCategory}`);
       
       if (transaction.category === 'Income') {
         if (transaction.subCategory?.toLowerCase().includes('tip') || 
@@ -102,6 +107,19 @@ export function BasReport({ transactions }: BasReportProps) {
     const g11TotalPurchases = totalPurchasesForGst;
     const g11bGstOnPurchases = g11TotalPurchases / 11;
     const netGstPayable = g1aGstOnSales - g11bGstOnPurchases;
+
+    console.log('BAS Calculation Results:', {
+      businessIncome,
+      tipsAndBonuses,
+      deductibleExpenses,
+      nonDeductibleExpenses,
+      needsApportionmentExpenses,
+      g1TotalSales,
+      g1aGstOnSales,
+      g11TotalPurchases,
+      g11bGstOnPurchases,
+      netGstPayable
+    });
 
     return {
       income: {

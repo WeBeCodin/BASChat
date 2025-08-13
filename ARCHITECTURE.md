@@ -157,7 +157,7 @@ PYTHON_EXTRACTOR_URL=http://localhost:8000  # Legacy support
    python langextract_main.py
    ```
 
-2. **Production**: Deploy to Railway/Render/Google Cloud, update `LANGEXTRACT_SERVICE_URL`
+2. **Production**: Deploy to Vercel/Render/Google Cloud, update `LANGEXTRACT_SERVICE_URL`
 
 ### Frontend Integration
 

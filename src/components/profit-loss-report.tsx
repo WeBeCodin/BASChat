@@ -59,12 +59,17 @@ export function ProfitLossReport({ transactions }: ProfitLossReportProps) {
 
   // Calculate P&L data
   const profitLossData = useMemo((): ProfitLossData => {
+    console.log('P&L Report - Transactions received:', transactions.length);
+    console.log('P&L Report - Sample transactions:', transactions.slice(0, 3));
+    console.log('P&L Report - Filtered transactions:', filteredTransactions.length);
+    
     const incomeMap = new Map<string, { amount: number; count: number }>();
     const expenseMap = new Map<string, { amount: number; count: number }>();
     
     filteredTransactions.forEach(transaction => {
       const amount = Math.abs(transaction.amount);
       const subcategory = transaction.subCategory || 'Uncategorized';
+      console.log(`P&L Processing: ${transaction.description}, amount: ${amount}, category: ${transaction.category}, subcategory: ${subcategory}`);
       
       if (transaction.category === 'Income') {
         const existing = incomeMap.get(subcategory) || { amount: 0, count: 0 };
