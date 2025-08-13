@@ -33,7 +33,7 @@ type TransactionsTableProps = {
   onRemoveMaybeTransaction?: (index: number) => void;
   onDeleteTransaction?: (index: number) => void;
   onFlipTransactionCategory?: (index: number) => void;
-  onChatAboutTransaction?: (transaction: Transaction) => void;
+  onChatAboutTransaction?: (transaction: Transaction) => Promise<void>;
 };
 
 const formatCurrency = (amount: number) => {

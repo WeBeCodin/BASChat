@@ -188,7 +188,7 @@ export default function Dashboard() {
 
   // Handler for transaction-specific chat
   const handleChatAboutTransaction = useCallback(
-    (transaction: Transaction) => {
+    async (transaction: Transaction) => {
       if (!industry) return;
 
       const transactionMessage = `Please help me understand this transaction:
@@ -204,13 +204,12 @@ export default function Dashboard() {
 
 How can this transaction be optimized for my BAS and tax requirements as a ${industry} business?`;
 
-      const newConversation: ConversationMessage[] = [
-        ...conversation,
-        { role: "user", content: transactionMessage },
-      ];
-      setConversation(newConversation);
+      console.log("handleChatAboutTransaction calling handleSendMessage with:", transactionMessage);
+      
+      // Use handleSendMessage to properly send the message and get AI response
+      await handleSendMessage(transactionMessage);
     },
-    [conversation, industry, toast]
+    [handleSendMessage, industry]
   );
 
   // Function to analyze transactions and suggest search terms
