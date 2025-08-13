@@ -155,8 +155,27 @@ export function BasReport({ transactions }: BasReportProps) {
 
   return (
     <div className="space-y-6">
-      {/* Header with Date Range Selection */}
-      <Card>
+      {/* Empty State Message */}
+      {transactions.length === 0 && (
+        <Card>
+          <CardContent className="p-8 text-center">
+            <DollarSignIcon className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
+            <h3 className="text-xl font-semibold mb-2">BAS Report Ready to Generate</h3>
+            <p className="text-muted-foreground mb-4">
+              Your BAS report will automatically appear here once you upload and categorize your financial documents.
+            </p>
+            <p className="text-sm text-muted-foreground">
+              📄 Upload PDF documents → 🤖 AI categorizes transactions → 📊 Reports generated automatically
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Show report only when there are transactions */}
+      {transactions.length > 0 && (
+        <>
+          {/* Header with Date Range Selection */}
+          <Card>
         <CardHeader>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
@@ -390,6 +409,8 @@ export function BasReport({ transactions }: BasReportProps) {
           <strong>Important:</strong> This BAS report is for informational purposes only. Please consult with a registered tax agent or accountant before lodging your BAS. Ensure you have proper tax invoices for all GST claims and have calculated correct business use percentages for apportioned expenses.
         </AlertDescription>
       </Alert>
+        </>
+      )}
     </div>
   );
 }

@@ -121,8 +121,27 @@ export function ProfitLossReport({ transactions }: ProfitLossReportProps) {
 
   return (
     <div className="space-y-6">
-      {/* Header with Date Range Selection */}
-      <Card>
+      {/* Empty State Message */}
+      {transactions.length === 0 && (
+        <Card>
+          <CardContent className="p-8 text-center">
+            <DollarSignIcon className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
+            <h3 className="text-xl font-semibold mb-2">Profit & Loss Report Ready to Generate</h3>
+            <p className="text-muted-foreground mb-4">
+              Your Profit & Loss report will automatically appear here once you upload and categorize your financial documents.
+            </p>
+            <p className="text-sm text-muted-foreground">
+              📄 Upload PDF documents → 🤖 AI categorizes transactions → 📊 Reports generated automatically
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Show report only when there are transactions */}
+      {transactions.length > 0 && (
+        <>
+          {/* Header with Date Range Selection */}
+          <Card>
         <CardHeader>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
@@ -316,6 +335,8 @@ export function ProfitLossReport({ transactions }: ProfitLossReportProps) {
           </div>
         </CardContent>
       </Card>
+        </>
+      )}
     </div>
   );
 }

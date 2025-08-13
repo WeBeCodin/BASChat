@@ -707,13 +707,19 @@ export default function Dashboard() {
           message += `\n\nUse the Transaction Search tool above to find specific merchants or transaction types from all extracted transactions.`;
         }
 
-        message += "\n\nYou can now:\n";
+        message += "\n\n🎯 **REPORTS AUTOMATICALLY GENERATED!**\n";
+        message += "📊 **Your Profit & Loss Report** and **🧾 BAS Report** are already available in the tabs above!\n\n";
+        message += "**💡 TO VIEW YOUR REPORTS:**\n";
+        message += "1. **Click the 'Profit & Loss' tab** - for comprehensive income/expense analysis\n";
+        message += "2. **Click the 'BAS Report' tab** - for official G1, 1A, 1B BAS calculations\n\n";
+        message += "**You can now:**\n";
         message +=
-          "• Upload additional documents to add more transactions to your analysis\n";
-        message += "• Continue reviewing and categorizing transactions\n";
-        message += "• Ask me questions about your financial data\n\n";
+          "• **🔍 Upload additional documents** to add more transactions to your analysis\n";
+        message += "• **✅ Continue reviewing and categorizing** transactions\n";
+        message += "• **💬 Ask me questions** about your financial data or BAS calculations\n";
+        message += "• **📈 View your reports** in the tabs above (they update automatically!)\n\n";
         message +=
-          "Let me know when you're ready to upload more documents or if you need help with your BAS analysis!";
+          "**Need help?** Ask me to explain any BAS calculations or transaction categorizations!";
 
         setConversation([
           {
@@ -791,11 +797,17 @@ export default function Dashboard() {
           message += `\n\nUse the Transaction Search tool above to find specific merchants or transaction types from all extracted transactions.`;
         }
 
-        message += "\n\nYou can now:\n";
-        message += "• Upload additional documents to add more transactions to your analysis\n";
-        message += "• Continue reviewing and categorizing transactions\n";
-        message += "• Ask me questions about your financial data\n\n";
-        message += "Let me know when you're ready to upload more documents or if you need help with your BAS analysis!";
+        message += "\n\n🎯 **REPORTS AUTOMATICALLY GENERATED!**\n";
+        message += "📊 **Your Profit & Loss Report** and **🧾 BAS Report** are already available in the tabs above!\n\n";
+        message += "**💡 TO VIEW YOUR REPORTS:**\n";
+        message += "1. **Click the 'Profit & Loss' tab** - for comprehensive income/expense analysis\n";
+        message += "2. **Click the 'BAS Report' tab** - for official G1, 1A, 1B BAS calculations\n\n";
+        message += "**You can now:**\n";
+        message += "• **🔍 Upload additional documents** to add more transactions to your analysis\n";
+        message += "• **✅ Continue reviewing and categorizing** transactions\n";
+        message += "• **💬 Ask me questions** about your financial data or BAS calculations\n";
+        message += "• **📈 View your reports** in the tabs above (they update automatically!)\n\n";
+        message += "**Need help?** Ask me to explain any BAS calculations or transaction categorizations!";
 
         setConversation([{
           role: "bot",
@@ -1176,8 +1188,14 @@ How can this transaction be optimized for my BAS and tax requirements as a ${ind
             <div className="flex justify-center mb-6">
               <TabsList className="grid w-[600px] grid-cols-3">
                 <TabsTrigger value="transactions">Transactions & Chat</TabsTrigger>
-                <TabsTrigger value="profit-loss">Profit & Loss</TabsTrigger>
-                <TabsTrigger value="bas-report">BAS Report</TabsTrigger>
+                <TabsTrigger value="profit-loss" className="relative">
+                  📊 Profit & Loss
+                  <span className="absolute -top-1 -right-1 h-3 w-3 bg-green-500 rounded-full animate-pulse"></span>
+                </TabsTrigger>
+                <TabsTrigger value="bas-report" className="relative">
+                  🧾 BAS Report
+                  <span className="absolute -top-1 -right-1 h-3 w-3 bg-blue-500 rounded-full animate-pulse"></span>
+                </TabsTrigger>
               </TabsList>
             </div>
             
