@@ -35,8 +35,17 @@ export default function ChatPanel({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim()) return;
+    console.log("ChatPanel handleSubmit called with input:", input);
+    console.log("onSendMessage function:", typeof onSendMessage);
+    
+    if (!input.trim()) {
+      console.log("Input is empty, returning early");
+      return;
+    }
+    
+    console.log("About to call onSendMessage...");
     await onSendMessage(input);
+    console.log("onSendMessage completed");
     setInput("");
   };
 
@@ -146,6 +155,11 @@ export default function ChatPanel({
               size="icon"
               className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8"
               disabled={isLoading || !input.trim()}
+              onClick={(e) => {
+                console.log("Submit button clicked, form will submit");
+                console.log("isLoading:", isLoading);
+                console.log("input.trim():", input.trim());
+              }}
             >
               <SendHorizonal className="h-4 w-4" />
             </Button>
