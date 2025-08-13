@@ -186,32 +186,6 @@ export default function Dashboard() {
     [categorizedTransactions, toast]
   );
 
-  // Handler for transaction-specific chat
-  const handleChatAboutTransaction = useCallback(
-    async (transaction: Transaction) => {
-      if (!industry) return;
-
-      const transactionMessage = `Please help me understand this transaction:
-
-**Date:** ${transaction.date}
-**Description:** ${transaction.description}
-**Amount:** ${new Intl.NumberFormat("en-AU", {
-        style: "currency",
-        currency: "AUD",
-      }).format(transaction.amount)}
-**Category:** ${transaction.category}
-**Sub-Category:** ${transaction.subCategory || "N/A"}
-
-How can this transaction be optimized for my BAS and tax requirements as a ${industry} business?`;
-
-      console.log("handleChatAboutTransaction calling handleSendMessage with:", transactionMessage);
-      
-      // Use handleSendMessage to properly send the message and get AI response
-      await handleSendMessage(transactionMessage);
-    },
-    [handleSendMessage, industry]
-  );
-
   // Function to analyze transactions and suggest search terms
   const generateIndustrySearchSuggestions = useCallback(
     (transactions: RawTransaction[], selectedIndustry: string): string[] => {
@@ -856,6 +830,32 @@ When they ask about specific merchants or transaction types, direct them to use 
       documentInsights,
       industry,
     ]
+  );
+
+  // Handler for transaction-specific chat
+  const handleChatAboutTransaction = useCallback(
+    async (transaction: Transaction) => {
+      if (!industry) return;
+
+      const transactionMessage = `Please help me understand this transaction:
+
+**Date:** ${transaction.date}
+**Description:** ${transaction.description}
+**Amount:** ${new Intl.NumberFormat("en-AU", {
+        style: "currency",
+        currency: "AUD",
+      }).format(transaction.amount)}
+**Category:** ${transaction.category}
+**Sub-Category:** ${transaction.subCategory || "N/A"}
+
+How can this transaction be optimized for my BAS and tax requirements as a ${industry} business?`;
+
+      console.log("handleChatAboutTransaction calling handleSendMessage with:", transactionMessage);
+      
+      // Use handleSendMessage to properly send the message and get AI response
+      await handleSendMessage(transactionMessage);
+    },
+    [handleSendMessage, industry]
   );
 
   const { financialSummary, basCalculations } = useMemo(() => {
