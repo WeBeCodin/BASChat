@@ -26,6 +26,7 @@ export async function POST(request: NextRequest) {
     console.error("Error name:", error instanceof Error ? error.name : "Unknown");
     console.error("Error message:", error instanceof Error ? error.message : String(error));
     console.error("Error stack:", error instanceof Error ? error.stack : "No stack");
+    console.error("Raw input:", "input unavailable");
     
     return NextResponse.json(
       {
@@ -33,6 +34,10 @@ export async function POST(request: NextRequest) {
         maybeTransactions: undefined,
         error: "Failed to categorize transactions",
         errorDetails: error instanceof Error ? error.message : String(error),
+        debug: {
+          transactionCount: 0,
+          industry: "unknown"
+        }
       },
       { status: 500 }
     );
@@ -533,9 +538,6 @@ Return a JSON object with this exact structure:
       "category": "Income or Expenses or Maybe or Personal",
       "subCategory": "specific subcategory from the expense list above, or 'Business Income' for income, or 'Non-deductible' for personal",
       "confidence": 0.85
-    }
-  ]
-}
     }
   ]
 }`;
