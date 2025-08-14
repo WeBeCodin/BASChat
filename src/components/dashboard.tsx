@@ -654,7 +654,7 @@ export default function Dashboard() {
         )
       );
 
-      const categorizationResponse = await fetch('/api/categorize', {
+      const categorizationResponse = await fetch('/api/categorize-simple', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
