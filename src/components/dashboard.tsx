@@ -96,20 +96,11 @@ export default function Dashboard() {
   const { toast } = useToast();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
-  // Debug: Log transactions state
-  console.log('Dashboard Debug - Raw transactions:', rawTransactions?.length || 0);
-  console.log('Dashboard Debug - Categorized transactions:', categorizedTransactions?.length || 0);
-  console.log('Dashboard Debug - Maybe transactions:', maybeTransactions?.length || 0);
-  console.log('Dashboard Debug - Current step:', step);
-
   // Combine categorized and maybe transactions for reporting
   const allTransactionsForReports = useMemo(() => {
     const categorized = categorizedTransactions || [];
     const maybe = maybeTransactions || [];
-    const combined = [...categorized, ...maybe];
-    console.log('Dashboard Debug - Combined transactions for reports:', combined.length);
-    console.log('Dashboard Debug - Sample combined transactions:', combined.slice(0, 3));
-    return combined;
+    return [...categorized, ...maybe];
   }, [categorizedTransactions, maybeTransactions]);
 
   // Helper functions for managing maybe transactions

@@ -145,66 +145,181 @@ SPECIAL HANDLING:
 - Electricity/phone require business use percentage calculation`,
 
     "Construction & Trades": `
+CRITICAL CONSTRUCTION BAS RULES:
+1. INCOME: Separate contract payments from material markups to avoid double-counting
+2. AVOID DOUBLE-COUNTING: Materials purchased vs materials charged to clients
+3. GST: Register if annual turnover >$75k, input credits on business purchases only
+4. APPORTIONMENT: Tools, vehicles, workspace need business % allocation if mixed use
+
 INCOME CATEGORIES:
-- Contract Income: Job payments, project fees, hourly rates
-- Material Markups: Markup on materials sold to clients
+- Contract Income: Job payments, project fees, hourly labor rates
+- Material Markups: Markup portion only (not raw material cost)
 
 EXPENSE SUBCATEGORIES:
-- Tools & Equipment: Hand tools, power tools, machinery, depreciation
-- Materials & Supplies: Timber, steel, concrete, fittings, consumables
-- Safety Equipment: PPE, hard hats, boots, safety gear
-- Vehicle Expenses: Work vehicle costs, fuel for job sites
-- Professional Development: Trade courses, certifications, licenses`,
+- Tools & Equipment: Hand tools, power tools, machinery, safety equipment
+- Materials & Supplies: Timber, steel, concrete, fittings, consumables (job-specific)
+- Vehicle Expenses: Work truck/van costs, fuel for job sites (apportion if personal use)
+- Professional Services: Trade licenses, certifications, building permits, inspections
+- Safety & Compliance: PPE, hard hats, safety boots, hi-vis, first aid supplies
+- Office Expenses: Project management software, plans, permits, communications
+- Subcontractor Payments: Payments to other trades (ensure proper tax invoices)
+- Equipment Hire: Crane hire, scaffolding, specialist equipment rental
+- Training & Development: Trade courses, safety training, equipment certifications
+- Insurance: Public liability, professional indemnity, tool insurance, vehicle insurance
+- Electricity: Workshop/shed power (apportion business use %)
+- Communications: Phone, internet for business (apportion business use %)
+
+SPECIAL HANDLING:
+- Separate material costs from markup when billing clients
+- Tools over $300 may need depreciation vs immediate deduction
+- Vehicle expenses require logbook for business use percentage
+- Exclude fines (parking tickets, safety violations) - not deductible`,
 
     "NDIS Support Work": `
+CRITICAL NDIS BAS RULES:
+1. INCOME: Use official NDIS payment statements, separate from travel allowances
+2. AVOID DOUBLE-COUNTING: Mileage reimbursements vs actual travel expenses
+3. GST: May not apply if <$75k turnover, but check NDIS provider requirements
+4. APPORTIONMENT: Vehicle, phone, training often mixed business/personal use
+
 INCOME CATEGORIES:
-- Support Services: Client care fees, hourly rates, NDIS plan funding
-- Travel Allowances: Mileage reimbursements, travel time payments
+- Support Services: NDIS plan funding, client care fees, hourly rates
+- Travel Allowances: Mileage reimbursements, travel time payments (check if taxable)
 
 EXPENSE SUBCATEGORIES:
-- Training & Development: Disability care training, first aid courses
-- Vehicle Expenses: Travel between clients, fuel, maintenance
-- Equipment & Supplies: Care equipment, medical supplies, safety items
-- Professional Services: Background checks, NDIS registration fees
-- Insurance: Professional indemnity, public liability insurance`,
+- Training & Development: Disability care training, first aid, manual handling courses
+- Vehicle Expenses: Travel between clients, fuel, maintenance (apportion personal use)
+- Equipment & Supplies: Care equipment, medical supplies, safety items, uniforms
+- Professional Services: NDIS worker screening, background checks, registration fees
+- Insurance: Professional indemnity, public liability, vehicle insurance
+- Communications: Phone, mobile data for client contact (apportion business use %)
+- Office Expenses: Record keeping software, stationery, client documentation
+- Electricity: Home office for administrative work (apportion business use %)
+- Professional Development: Disability sector conferences, continuing education
+- Safety Equipment: PPE, protective equipment, cleaning supplies
+
+MANDATORY EXCLUSIONS (categorize as "Personal" - not business deductible):
+- Personal meals, entertainment, private vehicle use
+- Fines, penalties, parking tickets
+- Personal clothing (unless specific uniform/PPE)
+
+SPECIAL HANDLING:
+- NDIS payments vs private client payments may have different GST treatment
+- Vehicle logbook essential for business use percentage
+- Training must be directly related to disability support work
+- Exclude personal development not specific to NDIS work`,
 
     "Truck Driving": `
+CRITICAL TRUCKING BAS RULES:
+1. INCOME: Separate freight payments from fuel/travel allowances to avoid double-counting
+2. AVOID DOUBLE-COUNTING: Company fuel cards vs personal fuel purchases
+3. GST: Heavy vehicle industry often >$75k, ensure GST registration compliance
+4. APPORTIONMENT: Truck expenses if owner-driver with personal use (rare)
+
 INCOME CATEGORIES:
-- Freight Income: Delivery payments, per-km rates, load fees
-- Allowances: Overnight allowances, meal allowances
+- Freight Income: Delivery payments, per-km rates, load fees, contract payments
+- Allowances: Overnight allowances, meal allowances (check if taxable)
 
 EXPENSE SUBCATEGORIES:
-- Vehicle Expenses: Fuel, maintenance, tyres, repairs, registration
-- Accommodation & Meals: Overnight stays, meal expenses while away
-- Equipment & Tools: Straps, chains, load securing equipment
-- Professional Services: License renewals, medical certificates
-- Insurance: Vehicle insurance, goods in transit coverage`,
+- Vehicle Expenses: Fuel, maintenance, tyres, repairs, registration, roadworthy
+- Accommodation & Meals: Overnight stays, meal expenses while away from home base
+- Equipment & Tools: Load restraints, straps, chains, tarps, safety equipment
+- Professional Services: License renewals, medical certificates, log book audits
+- Insurance: Vehicle insurance, goods in transit, public liability
+- Communications: CB radio, GPS, mobile phone for dispatch (apportion if personal use)
+- Safety & Compliance: Safety equipment, drug/alcohol testing, compliance training
+- Office Expenses: Logbook software, record keeping, fuel cards, admin
+- Training & Development: Heavy vehicle training, dangerous goods, crane tickets
+- Tolls: Road tolls, bridge tolls (keep detailed records)
+- Equipment Hire: Trailer hire, specialist loading equipment
+
+MANDATORY EXCLUSIONS (categorize as "Personal" - not business deductible):
+- Fines for traffic violations, parking, overweight penalties
+- Personal meals when not traveling for work
+- Personal vehicle use portions
+
+SPECIAL HANDLING:
+- Fuel tax credits may apply - coordinate with BAS reporting
+- Logbook records essential for business deductions
+- Interstate work may have different compliance requirements
+- Distinguish between employee reimbursements vs owner-driver expenses`,
 
     "Allied Health": `
+CRITICAL ALLIED HEALTH BAS RULES:
+1. INCOME: Professional services vs education/training income may have different GST treatment
+2. AVOID DOUBLE-COUNTING: Equipment purchases vs clinic rental inclusions
+3. GST: Register if >$75k turnover, input credits on professional equipment only
+4. APPORTIONMENT: Home office, vehicle, training often mixed business/personal
+
 INCOME CATEGORIES:
-- Professional Services: Consultation fees, treatment sessions, assessments
-- Training Income: Workshop fees, education services
+- Professional Services: Consultation fees, treatment sessions, assessments, reports
+- Training Income: Workshop fees, education services, supervision fees
 
 EXPENSE SUBCATEGORIES:
-- Equipment & Tools: Treatment equipment, software, technology
-- Professional Development: Courses, conferences, continuing education
-- Professional Services: Registration fees, professional body memberships
-- Office Expenses: Clinic rent, utilities, office supplies
-- Insurance: Professional indemnity, public liability insurance`
+- Equipment & Tools: Treatment equipment, software, technology, medical devices
+- Professional Development: Courses, conferences, continuing education, supervision
+- Professional Services: Registration fees, professional body memberships, indemnity insurance
+- Office Expenses: Clinic rent, utilities, reception, appointment software, stationery
+- Vehicle Expenses: Travel to clients, home visits (apportion personal use)
+- Communications: Phone, internet, telehealth setup (apportion business use %)
+- Insurance: Professional indemnity, public liability, equipment insurance
+- Equipment Maintenance: Calibration, servicing, repairs of professional equipment
+- Reference Materials: Professional journals, textbooks, assessment tools
+- Electricity: Clinic/home office power (apportion business use %)
+- Marketing & Advertising: Website, professional cards, directory listings
+
+MANDATORY EXCLUSIONS (categorize as "Personal" - not business deductible):
+- Personal development not related to professional practice
+- Fines, penalties, parking tickets
+- Personal clothing (unless specific uniform requirements)
+- Personal travel not for professional purposes
+
+SPECIAL HANDLING:
+- Professional development must be directly related to practice area
+- Home office expenses require business use percentage calculation
+- Equipment over $300 may require depreciation schedule
+- Distinguish between personal and professional insurance policies`
   };
 
   return guidance[industry] || `
+GENERAL BAS COMPLIANCE RULES:
+1. INCOME: Report all business income, separate from reimbursements to avoid double-counting
+2. AVOID DOUBLE-COUNTING: Equipment included in service fees vs separate purchases
+3. GST: Register if annual turnover >$75k, input credits on business purchases only
+4. APPORTIONMENT: Home office, vehicle, phone need business % allocation if mixed use
+
 INCOME CATEGORIES:
 - Professional Services: Consultation fees, service income, project payments
-- Product Sales: Product revenue, retail sales
+- Product Sales: Product revenue, retail sales (if applicable)
 
 EXPENSE SUBCATEGORIES:
-- Equipment & Tools: Industry-specific equipment, software, tools
-- Professional Development: Training, courses, certifications
-- Office Expenses: Supplies, utilities, communications
-- Professional Services: Licenses, memberships, professional fees
-- Insurance: Business insurance, professional liability
-- Marketing & Advertising: Website, advertising, promotional materials`;
+- Equipment & Tools: Industry-specific equipment, software, tools, technology
+- Professional Development: Training, courses, certifications directly related to business
+- Office Expenses: Rent, utilities, supplies, communications (apportion home office)
+- Professional Services: Licenses, memberships, professional fees, legal/accounting
+- Vehicle Expenses: Business travel, client visits (apportion personal use)
+- Insurance: Professional indemnity, public liability, business insurance
+- Marketing & Advertising: Website, advertising, business cards, promotional materials
+- Communications: Phone, internet, mobile data (apportion business use %)
+- Electricity: Office/workspace power (apportion business use %)
+
+MANDATORY EXCLUSIONS (categorize as "Personal" - not business deductible):
+- Fines, penalties, parking tickets, traffic violations
+- Personal entertainment, meals not for business purposes
+- Personal clothing (unless specific uniform/safety requirements)
+- Private use portions of mixed-use items
+
+MAYBE Category (requires user review for apportionment):
+- Home office expenses needing business use percentage
+- Vehicle expenses with mixed business/personal use
+- Training with both business and personal benefit
+- Equipment used for both business and personal purposes
+
+SPECIAL HANDLING:
+- Keep detailed records for apportionment calculations
+- Equipment over $300 may require depreciation vs immediate deduction
+- Distinguish between capital purchases and deductible expenses
+- Ensure proper tax invoices for GST input credit claims`;
 }
 
 async function processBatch(
@@ -219,65 +334,69 @@ async function processBatch(
 CRITICAL BAS ACCURACY RULES:
 
 1. **EXCLUDE NON-DEDUCTIBLE ITEMS:**
-   - Fines, penalties, parking tickets (FINES VIC DIRECT, etc.) = NOT DEDUCTIBLE
-   - Personal purchases, entertainment, personal travel
+   - Fines, penalties, parking tickets, traffic violations = NOT DEDUCTIBLE
+   - Personal purchases, entertainment, private travel, personal clothing
    - Private use portions of mixed-use items
+   - Capital purchases that should be depreciated (equipment >$300)
 
-2. **HANDLE APPORTIONMENT ITEMS:**
-   - Phone bills, internet, electricity = Need business use % (mark as "Maybe" for user review)
-   - Vehicle expenses (if used for personal and business)
-   - Home office costs
+2. **HANDLE APPORTIONMENT ITEMS (mark as "Maybe" for user review):**
+   - Phone bills, internet, electricity with mixed business/personal use
+   - Vehicle expenses with both business and personal use
+   - Home office costs requiring business use percentage
+   - Training/education with both business and personal benefit
 
 3. **AVOID DOUBLE-COUNTING:**
-   - For rideshare: Platform deposits = net amounts (fees already deducted)
-   - Toll charges may already be included in platform summaries
-   - Service fees from platform summaries vs individual transactions
+   - Material costs vs markup when billing clients
+   - Platform fees already deducted from deposits vs individual fee transactions
+   - Reimbursements already included in other income
+   - Equipment included in service contracts vs separate purchases
+
+4. **APPLY INDUSTRY-SPECIFIC RULES:**
+   - Follow GST registration requirements (>$75k annual turnover)
+   - Distinguish between different income types (services vs products vs allowances)
+   - Identify industry-specific mandatory exclusions
+   - Recognize common apportionment scenarios for the industry
 
 CATEGORIZATION RULES:
 
 **INCOME Categories:**
-- "Income": All business income including primary revenue, tips, bonuses, government payments
+- "Income": All business income including primary revenue, tips, bonuses, allowances
 
 **EXPENSE Subcategories (choose the most specific one):**
-- "Vehicle Lease/Rental": Car lease payments, rental fees (Splend, etc.)
-- "Fuel": Petrol, diesel, LPG, charging costs
-- "Vehicle Maintenance": Repairs, services, parts, tyres, windscreen
-- "Tolls": Road tolls, bridge tolls (check for platform duplicates)
-- "Vehicle Cleaning": Car wash, detailing, cleaning supplies
-- "Electricity": EV charging, office power (NEEDS APPORTIONMENT - mark as Maybe)
-- "Equipment & Tools": Professional equipment, tools, technology, software
-- "Office Expenses": Stationery, supplies, printing, postage, office rent
-- "Professional Services": Legal fees, accounting, consulting, licenses, platform fees
-- "Insurance": Vehicle, professional indemnity, public liability, business insurance
-- "Training & Development": Courses, certifications, conferences, professional development  
-- "Communications": Phone bills, internet, data plans (NEEDS APPORTIONMENT - mark as Maybe)
-- "Travel & Accommodation": Business travel, accommodation, meals while traveling
+- "Equipment & Tools": Professional equipment, tools, technology, software, machinery
+- "Vehicle Expenses": Fuel, maintenance, registration, insurance, repairs (business portion only)
+- "Professional Services": Licenses, registrations, legal fees, accounting, professional memberships
+- "Training & Development": Courses, certifications, conferences directly related to business
+- "Office Expenses": Rent, utilities, supplies, printing, postage, stationery
+- "Communications": Phone bills, internet, mobile data (business portion only)
+- "Insurance": Professional indemnity, public liability, business insurance, equipment insurance
+- "Materials & Supplies": Industry-specific materials, consumables, job supplies
+- "Travel & Accommodation": Business travel, client visits, accommodation, meals while traveling
 - "Marketing & Advertising": Website costs, advertising, business cards, promotional materials
-- "Bank Fees": Transaction fees, account fees, merchant fees, payment processing
-- "Materials & Supplies": Industry-specific materials, consumables, supplies
-- "Safety Equipment": PPE, safety gear, protective equipment
-- "Other Business Expenses": Miscellaneous legitimate business expenses
-
+- "Equipment Maintenance": Servicing, repairs, calibration of business equipment
+- "Safety Equipment": PPE, safety gear, protective equipment, first aid supplies
+- "Subcontractor Payments": Payments to other professionals/trades (ensure proper invoices)
+- "Equipment Hire": Rental of specialist equipment, tools, machinery
 **MANDATORY EXCLUSIONS (categorize as "Personal" - not business deductible):**
-- "Personal": Fines, penalties, parking tickets, personal entertainment, private purchases
+- "Personal": Fines, penalties, parking tickets, traffic violations, personal entertainment, private purchases, personal clothing (unless specific uniform/PPE)
 
 **MAYBE Category (requires user review for apportionment or clarification):**
-- "Uncertain Business Expense": Mixed business/personal use items, unclear transactions
-- "Personal/Business Mixed": Transactions that might be partially deductible
+- "Maybe": Mixed business/personal use items (phone, electricity, vehicle, home office)
+- "Maybe": Transactions requiring business use percentage calculation
+- "Maybe": Training/education with both business and personal benefit
+- "Maybe": Unclear transactions needing clarification
 
 **INDUSTRY-SPECIFIC GUIDANCE for ${input.industry}:**
 ${getIndustrySpecificGuidance(input.industry)}
 
-**INSTRUCTIONS:**
-1. **Apply BAS-specific rules**: Exclude fines/penalties, identify apportionment items
-2. **Industry-specific analysis**: Use the guidance below for nuanced categorization
-3. **Avoid double-counting**: Be aware of platform fees vs individual transactions
-4. **For expenses, assign the most specific subcategory that matches**
-5. **For income, use category "Income" and appropriate subcategory**
-6. **Use "Personal" for non-deductible items (fines, personal purchases)**
-7. **Use "Maybe" for mixed-use items needing apportionment or unclear transactions**
-8. **Include confidence scores (0.0-1.0)**
-9. **Preserve original transaction details exactly**
+**CRITICAL INSTRUCTIONS:**
+1. **Apply industry-specific BAS rules**: Use the detailed guidance above for your industry
+2. **Exclude non-deductible items**: Automatically categorize fines, penalties, and personal items as "Personal"
+3. **Identify apportionment needs**: Mark mixed-use items (phone, electricity, vehicle, home office) as "Maybe"
+4. **Prevent double-counting**: Check for duplicate charges, included fees, or material markups
+5. **Use specific subcategories**: Choose the most precise expense subcategory available
+6. **Maintain accuracy**: Include confidence scores (0.0-1.0) based on clarity of categorization
+7. **Preserve details**: Keep original transaction information exactly as provided
 
 Transactions to categorize:
 ${JSON.stringify(input.rawTransactions, null, 2)}

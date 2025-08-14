@@ -42,7 +42,7 @@ interface BasSummary {
 export function BasReport({ transactions }: BasReportProps) {
   const [startDate, setStartDate] = useState(() => {
     const date = new Date();
-    date.setMonth(date.getMonth() - 3); // Default to last 3 months
+    date.setFullYear(date.getFullYear() - 1); // Default to last year
     return format(date, 'yyyy-MM-dd');
   });
   
