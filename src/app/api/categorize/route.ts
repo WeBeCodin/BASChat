@@ -145,140 +145,224 @@ SPECIAL HANDLING:
 - Electricity/phone require business use percentage calculation`,
 
     "Construction & Trades": `
-CRITICAL CONSTRUCTION BAS RULES:
-1. INCOME: Separate contract payments from material markups to avoid double-counting
-2. AVOID DOUBLE-COUNTING: Materials purchased vs materials charged to clients
-3. GST: Register if annual turnover >$75k, input credits on business purchases only
-4. APPORTIONMENT: Tools, vehicles, workspace need business % allocation if mixed use
+**CRITICAL CONSTRUCTION BAS RULES (Real-World Expertise):**
 
-INCOME CATEGORIES:
-- Contract Income: Job payments, project fees, hourly labor rates
-- Material Markups: Markup portion only (not raw material cost)
+**🚨 TAXABLE PAYMENTS REPORTING SYSTEM (TPRS) - MANDATORY:**
+- Must report ALL payments to subcontractors annually to ATO
+- Keep ABN, name, total annual payments for each subcontractor
+- Report on Taxable Payments Annual Report (TPAR)
+- When categorizing subcontractor payments, remind user of TPAR obligation
 
-EXPENSE SUBCATEGORIES:
-- Tools & Equipment: Hand tools, power tools, machinery, safety equipment
-- Materials & Supplies: Timber, steel, concrete, fittings, consumables (job-specific)
-- Vehicle Expenses: Work truck/van costs, fuel for job sites (apportion if personal use)
-- Professional Services: Trade licenses, certifications, building permits, inspections
-- Safety & Compliance: PPE, hard hats, safety boots, hi-vis, first aid supplies
-- Office Expenses: Project management software, plans, permits, communications
-- Subcontractor Payments: Payments to other trades (ensure proper tax invoices)
-- Equipment Hire: Crane hire, scaffolding, specialist equipment rental
-- Training & Development: Trade courses, safety training, equipment certifications
-- Insurance: Public liability, professional indemnity, tool insurance, vehicle insurance
-- Electricity: Workshop/shed power (apportion business use %)
-- Communications: Phone, internet for business (apportion business use %)
+**INCOME CLASSIFICATION:**
+- Contract payments: Business Income (subject to GST if >$75k turnover)
+- Labour charges: Business Income
+- Material markups: Business Income (separate from raw material cost)
+- All construction income typically subject to GST
 
-SPECIAL HANDLING:
-- Separate material costs from markup when billing clients
-- Tools over $300 may need depreciation vs immediate deduction
-- Vehicle expenses require logbook for business use percentage
-- Exclude fines (parking tickets, safety violations) - not deductible`,
+**🚨 INSTANT ASSET WRITE-OFF vs DEPRECIATION:**
+- Tools under current threshold (check amount): Immediate deduction
+- Tools over threshold: Must be depreciated
+- When categorizing tool purchases, check value and advise accordingly
+
+**MATERIALS vs LABOUR SEPARATION:**
+- Important for accurate job costing and GST calculation
+- Materials from suppliers: Cost of Goods Sold
+- Labour portion: Service income
+
+**COMMON BUSINESS EXPENSES:**
+- Tools and equipment: Equipment (check instant asset write-off threshold)
+- Materials for jobs: Cost of Goods Sold
+- Subcontractor payments: Subcontractor costs (TPAR required)
+- Vehicle expenses: Motor Vehicle (often 100% business use)
+- Site fees and waste disposal: Site costs
+- Safety equipment: Equipment/PPE
+- Licenses and courses: Professional Development
+
+**SAMPLE TRANSACTION PATTERNS:**
+- "BuildRight Homes" invoice → Business Income + GST
+- "Labour - Fix-out (80 hrs @ $75/hr): $6,000" → Business Income
+- "Materials - Skirting & Architraves: $1,500" → Business Income (markup)
+- "Milwaukee M18 Circular Saw: $399" → Equipment (check write-off threshold)
+- "Bunnings - Timber, Screws: $1,250.60" → Cost of Goods Sold
+- "Waste Disposal (Ute Load): $95" → Site costs
+
+**GST TREATMENT:**
+- Most construction income: Include in G1 (Total Sales)
+- Tool and material purchases: Claim GST credits (1B field)
+- Subcontractor payments: Check if they're GST registered
+
+**MANDATORY EXCLUSIONS:**
+- Fines and penalties
+- Personal use of tools/vehicle
+- Entertainment (unless client-related)
+
+**SPECIAL COMPLIANCE:**
+- Public liability insurance essential
+- Licenses and safety cards required
+- White Card/Construction Induction training deductible
+`,
 
     "NDIS Support Work": `
-CRITICAL NDIS BAS RULES:
-1. INCOME: Use official NDIS payment statements, separate from travel allowances
-2. AVOID DOUBLE-COUNTING: Mileage reimbursements vs actual travel expenses
-3. GST: May not apply if <$75k turnover, but check NDIS provider requirements
-4. APPORTIONMENT: Vehicle, phone, training often mixed business/personal use
+**CRITICAL NDIS BAS RULES (Real-World Expertise):**
 
-INCOME CATEGORIES:
-- Support Services: NDIS plan funding, client care fees, hourly rates
-- Travel Allowances: Mileage reimbursements, travel time payments (check if taxable)
+**🚨 NDIS SERVICES ARE GST-FREE - MOST IMPORTANT RULE:**
+- Income for "reasonable and necessary" NDIS supports is GST-FREE
+- DO NOT include NDIS income in G1 (Total Sales) for GST calculations
+- Still assessable income for tax purposes, but NOT for BAS GST calculation
+- Example: "$1,636.75" from MyPlan Connect → Income but GST-FREE
 
-EXPENSE SUBCATEGORIES:
-- Training & Development: Disability care training, first aid, manual handling courses
-- Vehicle Expenses: Travel between clients, fuel, maintenance (apportion personal use)
-- Equipment & Supplies: Care equipment, medical supplies, safety items, uniforms
-- Professional Services: NDIS worker screening, background checks, registration fees
-- Insurance: Professional indemnity, public liability, vehicle insurance
-- Communications: Phone, mobile data for client contact (apportion business use %)
-- Office Expenses: Record keeping software, stationery, client documentation
-- Electricity: Home office for administrative work (apportion business use %)
-- Professional Development: Disability sector conferences, continuing education
-- Safety Equipment: PPE, protective equipment, cleaning supplies
+**GST REFUND OPPORTUNITY:**
+- You CAN claim GST credits on business purchases (1B field)
+- Since income is GST-free (1A = $0), you'll likely get GST REFUNDS each quarter
+- Explain to user: "Because NDIS income is GST-free, you may receive GST refunds"
 
-MANDATORY EXCLUSIONS (categorize as "Personal" - not business deductible):
-- Personal meals, entertainment, private vehicle use
-- Fines, penalties, parking tickets
-- Personal clothing (unless specific uniform/PPE)
+**INCOME CLASSIFICATION:**
+- Plan Manager payments: GST-free NDIS income
+- Direct participant payments: GST-free NDIS income  
+- Private (non-NDIS) services: May be GST-free if health-related, or taxable
 
-SPECIAL HANDLING:
-- NDIS payments vs private client payments may have different GST treatment
-- Vehicle logbook essential for business use percentage
-- Training must be directly related to disability support work
-- Exclude personal development not specific to NDIS work`,
+**🚨 MANDATORY LOGBOOK FOR VEHICLE EXPENSES:**
+- Essential for claiming car expenses between clients
+- Need business use percentage
+- ALWAYS remind user: "Logbook required for vehicle expense claims"
+
+**COMMON BUSINESS EXPENSES (Claim GST credits on these):**
+- Professional insurance: Professional Development (often GST-free)
+- Worker screening: Professional Development
+- First Aid/CPR courses: Training & Development (often GST-free)
+- Art supplies for clients: Client supplies/Equipment
+- Sensory toys: Client supplies/Equipment  
+- Car expenses: Motor Vehicle (business % only)
+
+**SAMPLE TRANSACTION PATTERNS:**
+- "MyPlan Connect" payments → NDIS Income (GST-FREE)
+- "Community Access (15 hrs @ $65.47/hr)" → NDIS Income (GST-FREE)
+- "AAMI Insurance - Professional Indemnity" → Professional Development + claim GST
+- "Kmart - Art Supplies (for client)" → Client supplies + claim GST
+- "St John Ambulance - First Aid Course" → Training (often GST-free)
+
+**BAS CALCULATION IMPACT:**
+- G1 (Total Sales): $0 for NDIS income (GST-free)
+- 1A (GST on Sales): $0 for NDIS income
+- 1B (GST Credits): Normal claims on business purchases
+- Net Result: Usually GST refund each quarter
+
+**MANDATORY EXCLUSIONS:**
+- Personal vehicle use
+- Personal development not NDIS-related
+- Entertainment and personal meals
+`,
 
     "Truck Driving": `
-CRITICAL TRUCKING BAS RULES:
-1. INCOME: Separate freight payments from fuel/travel allowances to avoid double-counting
-2. AVOID DOUBLE-COUNTING: Company fuel cards vs personal fuel purchases
-3. GST: Heavy vehicle industry often >$75k, ensure GST registration compliance
-4. APPORTIONMENT: Truck expenses if owner-driver with personal use (rare)
+**CRITICAL TRUCK DRIVING BAS RULES (Real-World Expertise):**
 
-INCOME CATEGORIES:
-- Freight Income: Delivery payments, per-km rates, load fees, contract payments
-- Allowances: Overnight allowances, meal allowances (check if taxable)
+**🚨 FUEL TAX CREDITS (FTC) - MOST IMPORTANT RULE:**
+- Heavy vehicles (over 4.5 tonnes GVM) operating on public roads can claim FTC
+- When you see "Diesel Fuel" transactions, ALWAYS flag for FTC calculation
+- FTC amount = Litres × Current FTC Rate (approximately 44.2 cents per litre for heavy vehicles)
+- This goes in BAS field 7D - separate from GST calculations
+- Example: "Diesel Fuel (450 Litres): $990.00" = 450 × $0.442 = $198.90 FTC claim
+- ALWAYS ask user for litres when categorizing fuel purchases
 
-EXPENSE SUBCATEGORIES:
-- Vehicle Expenses: Fuel, maintenance, tyres, repairs, registration, roadworthy
-- Accommodation & Meals: Overnight stays, meal expenses while away from home base
-- Equipment & Tools: Load restraints, straps, chains, tarps, safety equipment
-- Professional Services: License renewals, medical certificates, log book audits
-- Insurance: Vehicle insurance, goods in transit, public liability
-- Communications: CB radio, GPS, mobile phone for dispatch (apportion if personal use)
-- Safety & Compliance: Safety equipment, drug/alcohol testing, compliance training
-- Office Expenses: Logbook software, record keeping, fuel cards, admin
-- Training & Development: Heavy vehicle training, dangerous goods, crane tickets
-- Tolls: Road tolls, bridge tolls (keep detailed records)
-- Equipment Hire: Trailer hire, specialist loading equipment
+**INCOME CLASSIFICATION:**
+- Linehaul Service payments: Business Income (subject to GST)
+- Fuel Levy Surcharge: ASSESSABLE INCOME (not a reimbursement) - MUST include in G1
+- All freight payments are subject to GST if business turns over >$75k
 
-MANDATORY EXCLUSIONS (categorize as "Personal" - not business deductible):
-- Fines for traffic violations, parking, overweight penalties
-- Personal meals when not traveling for work
-- Personal vehicle use portions
+**🚨 MANDATORY LOGBOOK REQUIREMENTS:**
+- ALL vehicle expenses require ATO-compliant logbook
+- Usually 100% business use for dedicated truck drivers
+- ALWAYS remind user: "Logbook required for all vehicle claims"
 
-SPECIAL HANDLING:
-- Fuel tax credits may apply - coordinate with BAS reporting
-- Logbook records essential for business deductions
-- Interstate work may have different compliance requirements
-- Distinguish between employee reimbursements vs owner-driver expenses`,
+**VEHICLE EXPENSES (typically 100% business for truck drivers):**
+- Fuel: Motor Vehicle expenses + potential FTC claim
+- Truck lease/finance: Business expenses (check if GST-free financial service)
+- Insurance & Registration: Motor Vehicle expenses
+- Repairs & Maintenance: Motor Vehicle expenses
+- Tyres & consumables: Motor Vehicle expenses
+
+**ON-ROAD EXPENSES (Overnight work trips only):**
+- Meals while away overnight: Travel expenses (must be reasonable)
+- Accommodation while away overnight: Travel expenses  
+- Must keep receipts and prove work-related
+
+**COMMON BUSINESS EXPENSES:**
+- Ratchet straps, work gloves: Consumables/Equipment
+- Tools and equipment: Equipment (check instant asset write-off threshold)
+- Professional association fees: Professional Development
+- Logbooks: Office supplies
+
+**GST TREATMENT:**
+- Most truck driving income: Include GST in calculations
+- Equipment purchases: Claim GST credits (1B field)
+- Fuel: Pay GST on purchase (claim 1B), but FTC separate calculation
+
+**MANDATORY EXCLUSIONS (categorize as "Personal"):**
+- Personal meals (not overnight work trips)
+- Fines and traffic penalties
+- Personal use portions of vehicle
+
+**SAMPLE TRANSACTION PATTERNS:**
+- "LogiCorp Freight" payments → Business Income + GST
+- "Fuel Levy Surcharge" → Business Income (assessable)
+- "BP TRUCK STOP - Diesel Fuel" → Motor Vehicle + ask for litres for FTC
+- "Bunnings - Ratchet Straps" → Equipment/Consumables
+- "TRUCKFINANCE PTY LTD - Lease Payment" → Vehicle expenses (likely GST-free)
+`,
 
     "Allied Health": `
-CRITICAL ALLIED HEALTH BAS RULES:
-1. INCOME: Professional services vs education/training income may have different GST treatment
-2. AVOID DOUBLE-COUNTING: Equipment purchases vs clinic rental inclusions
-3. GST: Register if >$75k turnover, input credits on professional equipment only
-4. APPORTIONMENT: Home office, vehicle, training often mixed business/personal
+**CRITICAL ALLIED HEALTH BAS RULES (Real-World Expertise):**
 
-INCOME CATEGORIES:
-- Professional Services: Consultation fees, treatment sessions, assessments, reports
-- Training Income: Workshop fees, education services, supervision fees
+**🚨 HEALTH SERVICES ARE GENERALLY GST-FREE - MOST IMPORTANT RULE:**
+- Health services are GST-free if Medicare benefit payable OR supplied by registered health professional
+- Physiotherapy, psychology, chiropractic, etc. are typically GST-FREE
+- DO NOT include professional health service income in G1 (Total Sales) for GST calculations
+- Still assessable income for tax purposes, but NOT for BAS GST calculation
 
-EXPENSE SUBCATEGORIES:
-- Equipment & Tools: Treatment equipment, software, technology, medical devices
-- Professional Development: Courses, conferences, continuing education, supervision
-- Professional Services: Registration fees, professional body memberships, indemnity insurance
-- Office Expenses: Clinic rent, utilities, reception, appointment software, stationery
-- Vehicle Expenses: Travel to clients, home visits (apportion personal use)
-- Communications: Phone, internet, telehealth setup (apportion business use %)
-- Insurance: Professional indemnity, public liability, equipment insurance
-- Equipment Maintenance: Calibration, servicing, repairs of professional equipment
-- Reference Materials: Professional journals, textbooks, assessment tools
-- Electricity: Clinic/home office power (apportion business use %)
-- Marketing & Advertising: Website, professional cards, directory listings
+**GST REFUND OPPORTUNITY:**
+- You CAN claim GST credits on business purchases (rent, supplies, equipment)
+- Since income is GST-free (1A = $0), you'll likely get GST REFUNDS each quarter
+- Explain to user: "Because health services are GST-free, you may receive GST refunds"
 
-MANDATORY EXCLUSIONS (categorize as "Personal" - not business deductible):
-- Personal development not related to professional practice
-- Fines, penalties, parking tickets
-- Personal clothing (unless specific uniform requirements)
-- Personal travel not for professional purposes
+**INCOME CLASSIFICATION:**
+- Patient payments (HICAPS/EFTPOS): GST-free health services
+- Medicare rebates: GST-free health services
+- Training/education income: May be GST-free (education) or taxable
 
-SPECIAL HANDLING:
-- Professional development must be directly related to practice area
-- Home office expenses require business use percentage calculation
-- Equipment over $300 may require depreciation schedule
-- Distinguish between personal and professional insurance policies`
+**PROFESSIONAL REGISTRATION & COMPLIANCE:**
+- AHPRA registration fees: Professional Development (usually GST-free)
+- Professional association fees: Professional Development
+- Professional indemnity insurance: Essential business expense
+
+**COMMON BUSINESS EXPENSES (Claim GST credits on these):**
+- Clinic rent: Office expenses (claim GST credit on rental)
+- Clinical supplies: Equipment/Consumables (oils, tape, bands, needles)
+- Practice software: Office expenses (Cliniko, etc.)
+- Equipment: Professional equipment purchases
+
+**SAMPLE TRANSACTION PATTERNS:**
+- "Patient Payments (HICAPS/EFTPOS): $850.00" → Income (GST-FREE)
+- "Medicare Rebates Processed: $212.80" → Income (GST-FREE)
+- "AHPRA - Registration Renewal: $450.00" → Professional Development (GST-free)
+- "Clinic Supplies - Massage Oil: $75.00" → Equipment + claim GST
+- "Commercial Realty - Room Rental: $1,200.00" → Office expenses + claim GST
+
+**BAS CALCULATION IMPACT:**
+- G1 (Total Sales): $0 for health services (GST-free)
+- 1A (GST on Sales): $0 for health services
+- 1B (GST Credits): Normal claims on business purchases (rent, supplies, equipment)
+- Net Result: Usually GST refund each quarter
+
+**CONTINUING PROFESSIONAL DEVELOPMENT:**
+- CPD courses: Training & Development (often GST-free if education)
+- Professional conferences: Training & Development
+- Clinical supervision: Professional Development
+
+**MANDATORY EXCLUSIONS:**
+- Personal health treatments
+- Personal development not professionally required
+- Personal use of equipment/vehicles
+`,
   };
 
   return guidance[industry] || `
@@ -394,6 +478,44 @@ ${getIndustrySpecificGuidance(input.industry)}
 2. **Exclude non-deductible items**: Automatically categorize fines, penalties, and personal items as "Personal"
 3. **Identify apportionment needs**: Mark mixed-use items (phone, electricity, vehicle, home office) as "Maybe"
 4. **Prevent double-counting**: Check for duplicate charges, included fees, or material markups
+5. **Recognize real-world patterns**: Apply pattern matching for common industry transactions
+
+**REAL-WORLD PATTERN RECOGNITION:**
+
+**For Truck Driving:**
+- "LogiCorp Freight", "Remittance Advice" patterns → Business Income
+- "Fuel Levy Surcharge" → Business Income (assessable, not reimbursement)
+- "Diesel Fuel", "BP TRUCK STOP" → Vehicle Expenses (note: flag for FTC)
+- "Ratchet Straps", "Work Gloves" → Equipment & Tools
+- "TRUCKFINANCE", "Lease Payment" → Vehicle Expenses
+
+**For NDIS Support Work:**
+- "MyPlan Connect", "Plan Manager" payments → Income (GST-FREE)
+- "Community Access", "In-Home Support" → Income (GST-FREE)
+- "AAMI Insurance - Professional Indemnity" → Professional Services
+- "Art Supplies (for client)", "Sensory Toy" → Materials & Supplies
+- "First Aid Course", "CPR Course" → Training & Development
+
+**For Allied Health:**
+- "Patient Payments", "HICAPS", "EFTPOS" → Income (GST-FREE)
+- "Medicare Rebates" → Income (GST-FREE)
+- "AHPRA Registration" → Professional Services (GST-free)
+- "Massage Oil", "Resistance Bands" → Materials & Supplies
+- "Room Rental", "Health Hub" → Office Expenses
+
+**For Construction & Trades:**
+- "BuildRight Homes", customer invoices → Business Income
+- "Labour - Fix-out", hourly rates → Business Income
+- "Materials - Skirting" → Business Income (markup portion)
+- "Milwaukee", "Circular Saw" → Equipment & Tools (check write-off threshold)
+- "Bunnings - Timber" → Materials & Supplies (Cost of Goods Sold)
+- "Waste Disposal" → Professional Services
+
+**GST TREATMENT ALERTS:**
+- NDIS income → GST-FREE (exclude from G1 calculation)
+- Allied Health services → GST-FREE (exclude from G1 calculation)
+- Truck driving freight → Usually GST applicable
+- Construction income → Usually GST applicable
 5. **Use specific subcategories**: Choose the most precise expense subcategory available
 6. **Maintain accuracy**: Include confidence scores (0.0-1.0) based on clarity of categorization
 7. **Preserve details**: Keep original transaction information exactly as provided
