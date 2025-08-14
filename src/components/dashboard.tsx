@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   UploadCloud,
@@ -93,6 +94,10 @@ export default function Dashboard() {
   const [customIndustry, setCustomIndustry] = useState<string>("");
   const [isGeneratingLexicon, setIsGeneratingLexicon] = useState(false);
   const [lexiconProgress, setLexiconProgress] = useState<string>("");
+  const [extractionProgress, setExtractionProgress] = useState<number>(0);
+  const [extractionStatus, setExtractionStatus] = useState<string>("");
+  const [categorizationProgress, setCategorizationProgress] = useState<number>(0);
+  const [categorizationStatus, setCategorizationStatus] = useState<string>("");
   const { toast } = useToast();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -432,19 +437,47 @@ export default function Dashboard() {
     formData.append("file", file);
 
     console.log("Using hybrid extraction pipeline...");
+    
+    // Start progress tracking
+    setExtractionProgress(10);
+    setExtractionStatus("Initializing document processing...");
+    
+    // Simulate progress for user feedback (since we can't track actual API progress)
+    const progressInterval = setInterval(() => {
+      setExtractionProgress(prev => {
+        if (prev < 80) {
+          return prev + Math.random() * 10;
+        }
+        return prev;
+      });
+    }, 1000);
+    
+    // Update status messages
+    setTimeout(() => setExtractionStatus("Analyzing document structure..."), 2000);
+    setTimeout(() => setExtractionStatus("Extracting transaction data..."), 4000);
+    setTimeout(() => setExtractionStatus("Processing financial information..."), 6000);
+    setTimeout(() => setExtractionStatus("Finalizing extraction..."), 8000);
 
-    const response = await fetch("/api/extract-pdf-hybrid", {
+    try {
+      const response = await fetch("/api/extract-pdf-hybrid", {
       method: "POST",
       body: formData,
     });
 
+    clearInterval(progressInterval);
+
     if (!response.ok) {
       const errorData = await response.json();
       console.error("Hybrid extraction error:", errorData);
+      setExtractionProgress(0);
+      setExtractionStatus("");
       throw new Error(
         errorData.error || errorData.details || "PDF extraction failed"
       );
     }
+
+    setExtractionProgress(90);
+    setExtractionStatus("Processing results...");
 
     const result = await response.json();
     console.log(
@@ -460,8 +493,23 @@ export default function Dashboard() {
       result.transactions?.slice(0, 3)
     );
 
+    setExtractionProgress(100);
+    setExtractionStatus("Extraction complete!");
+    
+    // Clear progress after a short delay
+    setTimeout(() => {
+      setExtractionProgress(0);
+      setExtractionStatus("");
+    }, 1500);
+
     return result;
-  };
+  } catch (error) {
+    clearInterval(progressInterval);
+    setExtractionProgress(0);
+    setExtractionStatus("");
+    throw error;
+  }
+};
 
   const handleFileChange = async (
     event: React.ChangeEvent<HTMLInputElement>
@@ -633,9 +681,16 @@ export default function Dashboard() {
       console.log("Starting categorization for industry:", selectedIndustry);
       console.log("Raw transactions count:", rawTransactions?.length);
 
+      // Start categorization progress tracking
+      setCategorizationProgress(10);
+      setCategorizationStatus("Analyzing transaction patterns...");
+
       // Use all transactions for categorization
       const transactionsToProcess = rawTransactions || [];
       console.log("Processing all transactions:", transactionsToProcess.length);
+
+      setCategorizationProgress(25);
+      setCategorizationStatus("Applying industry-specific BAS rules...");
 
       // Log the exact input being sent to AI
       const aiInput = {
@@ -654,6 +709,9 @@ export default function Dashboard() {
         )
       );
 
+      setCategorizationProgress(40);
+      setCategorizationStatus("Processing with expert categorization engine...");
+
       const categorizationResponse = await fetch('/api/categorize', {
         method: 'POST',
         headers: {
@@ -665,6 +723,9 @@ export default function Dashboard() {
       if (!categorizationResponse.ok) {
         throw new Error(`HTTP error! status: ${categorizationResponse.status}`);
       }
+
+      setCategorizationProgress(70);
+      setCategorizationStatus("Finalizing BAS categorization...");
 
       const result = await categorizationResponse.json();
 
@@ -683,9 +744,21 @@ export default function Dashboard() {
         (result.transactions.length > 0 ||
           (result.maybeTransactions && result.maybeTransactions.length > 0))
       ) {
+        setCategorizationProgress(90);
+        setCategorizationStatus("Organizing results...");
+        
         setCategorizedTransactions(result.transactions || []);
         setMaybeTransactions(result.maybeTransactions || []);
         setStep("ready");
+
+        setCategorizationProgress(100);
+        setCategorizationStatus("Categorization complete!");
+
+        // Clear progress after delay
+        setTimeout(() => {
+          setCategorizationProgress(0);
+          setCategorizationStatus("");
+        }, 1500);
 
         const categorizedCount = result.transactions?.length || 0;
         const maybeCount = result.maybeTransactions?.length || 0;
@@ -739,6 +812,8 @@ export default function Dashboard() {
       }
     } catch (error) {
       console.error("Error categorizing transactions:", error);
+      setCategorizationProgress(0);
+      setCategorizationStatus("");
       toast({
         variant: "destructive",
         title: "Categorization Failed",
@@ -1070,12 +1145,23 @@ How can this transaction be optimized for my BAS and tax requirements as a ${ind
               <CardTitle className="mt-4">
                 Upload Your Financial Documents
               </CardTitle>
-              <CardDescription className="mt-2 mb-6">
+              <CardDescription className="mt-2 mb-4">
                 Drag and drop your PDF files here or click to upload. Our
                 intelligent hybrid extraction system automatically selects the
                 optimal engine based on document complexity to minimize costs
                 while maximizing accuracy.
               </CardDescription>
+              
+              {/* File size warning */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-6">
+                <p className="text-sm text-blue-800 font-medium">
+                  📄 Processing Time Notice
+                </p>
+                <p className="text-sm text-blue-600 mt-1">
+                  The larger the file size, the longer extraction will take. 
+                  Large bank statements (10+ pages) may take 30-60 seconds to process.
+                </p>
+              </div>
 
               <Input
                 ref={fileInputRef}
@@ -1105,13 +1191,52 @@ How can this transaction be optimized for my BAS and tax requirements as a ${ind
                   ? "Categorizing Transactions..."
                   : "Processing Additional Document..."}
               </CardTitle>
-              <CardDescription className="mt-2">
+              <CardDescription className="mt-2 mb-6">
                 {step === "extracting"
-                  ? "Our hybrid AI system is analyzing your document and selecting the optimal extraction engine. This may take a moment."
+                  ? "Our hybrid AI system is analyzing your document and selecting the optimal extraction engine. This may take a moment for large files."
                   : step === "categorizing"
-                  ? "Applying industry logic to categorize your transactions."
+                  ? "Applying expert industry logic to categorize your transactions with professional BAS accuracy."
                   : "Extracting transactions from your additional document and merging with existing data."}
               </CardDescription>
+              
+              {/* Progress bar for extraction */}
+              {step === "extracting" && extractionProgress > 0 && (
+                <div className="w-full max-w-md mx-auto mb-4">
+                  <div className="flex justify-between text-sm text-muted-foreground mb-2">
+                    <span>Progress</span>
+                    <span>{Math.round(extractionProgress)}%</span>
+                  </div>
+                  <Progress value={extractionProgress} className="h-2" />
+                  {extractionStatus && (
+                    <p className="text-sm text-muted-foreground mt-2 font-medium">
+                      {extractionStatus}
+                    </p>
+                  )}
+                </div>
+              )}
+              
+              {/* Progress bar for categorization */}
+              {step === "categorizing" && categorizationProgress > 0 && (
+                <div className="w-full max-w-md mx-auto mb-4">
+                  <div className="flex justify-between text-sm text-muted-foreground mb-2">
+                    <span>Progress</span>
+                    <span>{Math.round(categorizationProgress)}%</span>
+                  </div>
+                  <Progress value={categorizationProgress} className="h-2" />
+                  {categorizationStatus && (
+                    <p className="text-sm text-muted-foreground mt-2 font-medium">
+                      {categorizationStatus}
+                    </p>
+                  )}
+                </div>
+              )}
+              
+              {/* Estimated time notice */}
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mt-4">
+                <p className="text-sm text-yellow-800">
+                  ⏱️ Large documents may take 30-60 seconds to process completely
+                </p>
+              </div>
             </CardContent>
           </Card>
         );
