@@ -44,9 +44,9 @@ async function simpleProcessBatch(
   input: CategorizeTransactionsInput
 ): Promise<CategorizeTransactionsOutput> {
   
-  const apiKey = process.env.GOOGLE_AI_API_KEY;
+  const apiKey = process.env.GOOGLE_GENAI_API_KEY;
   if (!apiKey) {
-    throw new Error("GOOGLE_AI_API_KEY not found");
+    throw new Error("GOOGLE_GENAI_API_KEY not found");
   }
 
   // SIMPLE PROMPT FOR TESTING
