@@ -1,7 +1,7 @@
 "use client";
 
 import type { RawTransaction, Transaction } from "@/ai/schemas";
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
 import {
   Card,
@@ -100,6 +100,7 @@ export default function Dashboard() {
   const [categorizationStatus, setCategorizationStatus] = useState<string>("");
   const { toast } = useToast();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   // Combine categorized and maybe transactions for reporting
   const allTransactionsForReports = useMemo(() => {
@@ -1131,6 +1132,38 @@ How can this transaction be optimized for my BAS and tax requirements as a ${ind
     return { financialSummary: summary, basCalculations: bas };
   }, [categorizedTransactions]);
 
+  // Keyboard shortcut handler for Ctrl+Shift+F to focus transaction search
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Check for Ctrl+Shift+F (or Cmd+Shift+F on Mac)
+      if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key === 'F') {
+        event.preventDefault();
+        
+        // Only focus search if we're on the ready step and have transactions
+        if (step === 'ready' && rawTransactions && rawTransactions.length > 0) {
+          searchInputRef.current?.focus();
+          searchInputRef.current?.select();
+          
+          toast({
+            title: "Transaction Search Activated",
+            description: "Use the search field to find specific transactions",
+            duration: 2000,
+          });
+        } else if (step !== 'ready') {
+          toast({
+            title: "Search Not Available",
+            description: "Please upload and process a document first",
+            variant: "destructive",
+            duration: 2000,
+          });
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [step, rawTransactions, toast]);
+
   const handleUploadClick = () => {
     fileInputRef.current?.click();
   };
@@ -1376,6 +1409,7 @@ How can this transaction be optimized for my BAS and tax requirements as a ${ind
                   </Card>
 
                   <TransactionSearch
+                    ref={searchInputRef}
                     rawTransactions={rawTransactions}
                     onAddToIncome={addSearchedTransactionsAsIncome}
                     onAddToExpenses={addSearchedTransactionsAsExpenses}
