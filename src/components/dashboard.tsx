@@ -31,6 +31,9 @@ import TransactionSearch from "./transaction-search";
 import ChatPanel from "./chat-panel";
 import { ProfitLossReport } from "./profit-loss-report";
 import { BasReport } from "./bas-report";
+import { TransactionGroupCard, TransactionGroup } from "./transaction-review";
+import { ReviewModal, TransactionUpdate } from "./transaction-review";
+import { validationService, ValidationResult } from "@/services/validation-service";
 
 type ConversationMessage = {
   role: "user" | "bot";
@@ -98,6 +101,11 @@ export default function Dashboard() {
   const [extractionStatus, setExtractionStatus] = useState<string>("");
   const [categorizationProgress, setCategorizationProgress] = useState<number>(0);
   const [categorizationStatus, setCategorizationStatus] = useState<string>("");
+  
+  // New state for transaction review
+  const [reviewModalOpen, setReviewModalOpen] = useState(false);
+  const [selectedGroup, setSelectedGroup] = useState<TransactionGroup | null>(null);
+  const [validationResults, setValidationResults] = useState<Map<string, ValidationResult[]>>(new Map());
   const { toast } = useToast();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -209,6 +217,232 @@ export default function Dashboard() {
     },
     [categorizedTransactions, toast]
   );
+
+  // New transaction review functions
+  const groupTransactionsByCategory = useCallback((transactions: Transaction[]): TransactionGroup[] => {
+    const groups = new Map<string, Transaction[]>();
+    
+    transactions.forEach(transaction => {
+      const key = `${transaction.category}-${transaction.subCategory || 'Uncategorized'}`;
+      if (!groups.has(key)) {
+        groups.set(key, []);
+      }
+      groups.get(key)?.push(transaction);
+    });
+
+    return Array.from(groups.entries()).map(([key, transactions], index) => {
+      const [category, subCategory] = key.split('-');
+      const totalAmount = transactions.reduce((sum, t) => sum + t.amount, 0);
+      const avgConfidence = transactions.reduce((sum, t) => sum + (t.confidence || 0), 0) / transactions.length;
+      
+      // Count validation issues
+      let validationIssues = 0;
+      transactions.forEach(transaction => {
+        const transactionId = `${transaction.date}-${transaction.description}-${transaction.amount}`;
+        const issues = validationResults.get(transactionId) || [];
+        validationIssues += issues.length;
+      });
+
+      // Determine status based on confidence and validation issues
+      let status: 'approved' | 'pending' | 'needs_review';
+      if (validationIssues > 0 || avgConfidence < 0.7) {
+        status = 'needs_review';
+      } else if (avgConfidence < 0.9) {
+        status = 'pending';
+      } else {
+        status = 'approved';
+      }
+
+      return {
+        id: `group-${index}`,
+        category,
+        subCategory: subCategory !== 'Uncategorized' ? subCategory : undefined,
+        transactions,
+        totalAmount,
+        avgConfidence,
+        validationIssues,
+        status
+      };
+    });
+  }, [validationResults]);
+
+  const handleApproveAll = useCallback((groupId: string) => {
+    // Find the group and approve all transactions
+    const allTransactions = [...(categorizedTransactions || []), ...(maybeTransactions || [])];
+    const groups = groupTransactionsByCategory(allTransactions);
+    const group = groups.find(g => g.id === groupId);
+    
+    if (group) {
+      // Log audit entry
+      validationService.logAudit({
+        action: 'bulk_approve',
+        entityType: 'batch',
+        entityId: groupId,
+        metadata: { 
+          transactionCount: group.transactions.length,
+          category: group.category,
+          subCategory: group.subCategory 
+        }
+      });
+
+      toast({
+        title: "Group Approved",
+        description: `Approved ${group.transactions.length} transactions in ${group.category}`,
+      });
+    }
+  }, [categorizedTransactions, maybeTransactions, groupTransactionsByCategory, toast]);
+
+  const handleRejectAll = useCallback((groupId: string) => {
+    // Find the group and reject all transactions
+    const allTransactions = [...(categorizedTransactions || []), ...(maybeTransactions || [])];
+    const groups = groupTransactionsByCategory(allTransactions);
+    const group = groups.find(g => g.id === groupId);
+    
+    if (group) {
+      // Log audit entry
+      validationService.logAudit({
+        action: 'bulk_reject',
+        entityType: 'batch',
+        entityId: groupId,
+        metadata: { 
+          transactionCount: group.transactions.length,
+          category: group.category,
+          subCategory: group.subCategory 
+        }
+      });
+
+      toast({
+        title: "Group Rejected",
+        description: `Rejected ${group.transactions.length} transactions in ${group.category}`,
+      });
+    }
+  }, [categorizedTransactions, maybeTransactions, groupTransactionsByCategory, toast]);
+
+  const handleReviewGroup = useCallback((group: TransactionGroup) => {
+    setSelectedGroup(group);
+    setReviewModalOpen(true);
+  }, []);
+
+  const handleViewDetails = useCallback((group: TransactionGroup) => {
+    setSelectedGroup(group);
+    setReviewModalOpen(true);
+  }, []);
+
+  const handleApproveTransaction = useCallback((transactionId: string) => {
+    // Log audit entry
+    validationService.logAudit({
+      action: 'approve',
+      entityType: 'transaction',
+      entityId: transactionId,
+      changes: { status: 'approved' }
+    });
+
+    toast({
+      title: "Transaction Approved",
+      description: "Transaction has been approved",
+    });
+  }, [toast]);
+
+  const handleRejectTransaction = useCallback((transactionId: string) => {
+    // Log audit entry
+    validationService.logAudit({
+      action: 'reject',
+      entityType: 'transaction',
+      entityId: transactionId,
+      changes: { status: 'rejected' }
+    });
+
+    toast({
+      title: "Transaction Rejected",
+      description: "Transaction has been rejected",
+    });
+  }, [toast]);
+
+  const handleUpdateTransaction = useCallback((update: TransactionUpdate) => {
+    // Log audit entry
+    validationService.logAudit({
+      action: 'edit',
+      entityType: 'transaction',
+      entityId: update.transactionId,
+      changes: update.changes
+    });
+
+    // Update the actual transaction
+    setCategorizedTransactions(prev => {
+      if (!prev) return prev;
+      return prev.map(transaction => {
+        const transactionId = `${transaction.date}-${transaction.description}-${transaction.amount}`;
+        if (transactionId === update.transactionId) {
+          return { ...transaction, ...update.changes };
+        }
+        return transaction;
+      });
+    });
+
+    setMaybeTransactions(prev => {
+      if (!prev) return prev;
+      return prev.map(transaction => {
+        const transactionId = `${transaction.date}-${transaction.description}-${transaction.amount}`;
+        if (transactionId === update.transactionId) {
+          return { ...transaction, ...update.changes };
+        }
+        return transaction;
+      });
+    });
+
+    toast({
+      title: "Transaction Updated",
+      description: "Transaction has been updated successfully",
+    });
+  }, [toast]);
+
+  const handleBulkApprove = useCallback((transactionIds: string[]) => {
+    // Log audit entry
+    validationService.logAudit({
+      action: 'bulk_approve',
+      entityType: 'batch',
+      entityId: `bulk-${Date.now()}`,
+      metadata: { transactionIds, count: transactionIds.length }
+    });
+
+    toast({
+      title: "Bulk Approval",
+      description: `Approved ${transactionIds.length} transactions`,
+    });
+  }, [toast]);
+
+  const handleBulkReject = useCallback((transactionIds: string[]) => {
+    // Log audit entry
+    validationService.logAudit({
+      action: 'bulk_reject',
+      entityType: 'batch',
+      entityId: `bulk-${Date.now()}`,
+      metadata: { transactionIds, count: transactionIds.length }
+    });
+
+    toast({
+      title: "Bulk Rejection",
+      description: `Rejected ${transactionIds.length} transactions`,
+    });
+  }, [toast]);
+
+  // Run validation when transactions change
+  React.useEffect(() => {
+    const allTransactions = [...(categorizedTransactions || []), ...(maybeTransactions || [])];
+    if (allTransactions.length > 0 && industry) {
+      const industryMap: Record<string, string> = {
+        'Rideshare': 'rideshare',
+        'Construction & Trades': 'construction',
+        'NDIS Support Work': 'ndis',
+        'Truck Driving': 'trucking',
+        'Allied Health': 'ndis', // Allied health often similar to NDIS
+      };
+      
+      const mappedIndustry = industryMap[industry] || industry.toLowerCase();
+      const results = validationService.validateBatch(allTransactions, mappedIndustry);
+      setValidationResults(results);
+    }
+  }, [categorizedTransactions, maybeTransactions, industry]);
 
   // Function to analyze transactions and suggest search terms
   const generateIndustrySearchSuggestions = useCallback(
@@ -1414,15 +1648,45 @@ How can this transaction be optimized for my BAS and tax requirements as a ${ind
                     onAddToIncome={addSearchedTransactionsAsIncome}
                     onAddToExpenses={addSearchedTransactionsAsExpenses}
                   />
-                  <TransactionsTable
-                    transactions={categorizedTransactions}
-                    maybeTransactions={maybeTransactions}
-                    onApproveMaybeTransaction={approveMaybeTransaction}
-                    onRemoveMaybeTransaction={removeMaybeTransaction}
-                    onDeleteTransaction={deleteTransaction}
-                    onFlipTransactionCategory={flipTransactionCategory}
-                    onChatAboutTransaction={handleChatAboutTransaction}
-                  />
+                  
+                  {/* Transaction Review Groups */}
+                  {(() => {
+                    const allTransactions = [...(categorizedTransactions || []), ...(maybeTransactions || [])];
+                    const groups = groupTransactionsByCategory(allTransactions);
+                    
+                    if (groups.length > 0) {
+                      return (
+                        <div className="space-y-4">
+                          <h3 className="text-lg font-semibold">Transaction Review</h3>
+                          <div className="grid gap-4 lg:grid-cols-2">
+                            {groups.map((group) => (
+                              <TransactionGroupCard
+                                key={group.id}
+                                group={group}
+                                validationResults={validationResults}
+                                onApproveAll={handleApproveAll}
+                                onRejectAll={handleRejectAll}
+                                onReviewGroup={handleReviewGroup}
+                                onViewDetails={handleViewDetails}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    }
+                    
+                    return (
+                      <TransactionsTable
+                        transactions={categorizedTransactions}
+                        maybeTransactions={maybeTransactions}
+                        onApproveMaybeTransaction={approveMaybeTransaction}
+                        onRemoveMaybeTransaction={removeMaybeTransaction}
+                        onDeleteTransaction={deleteTransaction}
+                        onFlipTransactionCategory={flipTransactionCategory}
+                        onChatAboutTransaction={handleChatAboutTransaction}
+                      />
+                    );
+                  })()}
                 </div>
                 <div className="h-full max-h-[calc(100vh-12rem)] min-h-[500px]">
                   <ChatPanel
@@ -1448,5 +1712,22 @@ How can this transaction be optimized for my BAS and tax requirements as a ${ind
     }
   };
 
-  return renderStepContent();
+  return (
+    <>
+      {renderStepContent()}
+      
+      {/* Review Modal */}
+      <ReviewModal
+        isOpen={reviewModalOpen}
+        onClose={() => setReviewModalOpen(false)}
+        group={selectedGroup}
+        validationResults={validationResults}
+        onApproveTransaction={handleApproveTransaction}
+        onRejectTransaction={handleRejectTransaction}
+        onUpdateTransaction={handleUpdateTransaction}
+        onBulkApprove={handleBulkApprove}
+        onBulkReject={handleBulkReject}
+      />
+    </>
+  );
 }
