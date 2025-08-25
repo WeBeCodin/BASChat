@@ -38,11 +38,11 @@ const formatCurrency = (amount: number) => {
   }).format(amount);
 };
 
-export default function TransactionSearch({
+const TransactionSearch = React.forwardRef<HTMLInputElement, TransactionSearchProps>(({
   rawTransactions,
   onAddToIncome,
   onAddToExpenses,
-}: TransactionSearchProps) {
+}, ref) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [searchResults, setSearchResults] = useState<SearchResult | null>(null);
   const [isSearching, setIsSearching] = useState(false);
@@ -166,6 +166,7 @@ export default function TransactionSearch({
         </CardTitle>
         <div className="flex gap-2">
           <Input
+            ref={ref}
             placeholder="Search transactions (e.g., UBER, fuel, tolls...)"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -288,4 +289,8 @@ export default function TransactionSearch({
       )}
     </Card>
   );
-}
+});
+
+TransactionSearch.displayName = "TransactionSearch";
+
+export default TransactionSearch;

@@ -77,7 +77,7 @@ export function ProfitLoss({ transactions }: ProfitLossProps) {
     filteredTransactions.forEach(transaction => {
       const amount = Math.abs(transaction.amount)
       const category = transaction.category || 'Uncategorized'
-      const subcategory = transaction.subcategory || 'General'
+      const subcategory = transaction.subCategory || 'General'
 
       if (transaction.amount > 0) {
         // Income
