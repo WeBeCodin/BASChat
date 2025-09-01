@@ -7,6 +7,8 @@ from schemas import RawTransaction, ExtractionResult, BankTransaction, Transacti
 import re
 from datetime import datetime
 import json
+import hashlib
+from functools import lru_cache
 
 logger = logging.getLogger(__name__)
 
@@ -23,15 +25,37 @@ class SimplePDFExtractor:
     def extract_text_from_pdf(self, pdf_content: bytes, attempt: int = 0) -> str:
         """
         Extract text from PDF bytes using PyMuPDF with robust error handling and repair logic.
+        Optimized for speed with early termination and intelligent sampling.
         """
         try:
             # Attempt to open PDF from bytes
             pdf_document = fitz.open(stream=pdf_content, filetype="pdf")
             text_content = ""
             
-            for page_num in range(pdf_document.page_count):
+            # For large PDFs, use intelligent sampling to improve speed
+            page_count = pdf_document.page_count
+            if page_count > 10:
+                # Sample pages strategically: first few, middle, and last few
+                sample_pages = list(range(min(3, page_count)))  # First 3 pages
+                if page_count > 6:
+                    middle_start = page_count // 2 - 1
+                    sample_pages.extend(range(middle_start, min(middle_start + 2, page_count)))  # 2 middle pages
+                if page_count > 3:
+                    sample_pages.extend(range(max(page_count - 2, 0), page_count))  # Last 2 pages
+                
+                # Remove duplicates and sort
+                sample_pages = sorted(list(set(sample_pages)))
+                logger.info(f"Large PDF detected ({page_count} pages), sampling pages: {sample_pages}")
+            else:
+                sample_pages = list(range(page_count))
+            
+            extracted_chars = 0
+            max_chars = 100000  # Limit extraction to prevent memory issues
+            
+            for page_num in sample_pages:
                 try:
                     page = pdf_document.load_page(page_num)
+                    
                     # Try different text extraction methods for robustness
                     page_text = page.get_text()
                     
@@ -45,6 +69,12 @@ class SimplePDFExtractor:
                         page_text = self._extract_from_blocks(blocks)
                     
                     text_content += page_text + "\n"
+                    extracted_chars += len(page_text)
+                    
+                    # Early termination if we have enough text for analysis
+                    if extracted_chars > max_chars:
+                        logger.info(f"Early termination: extracted {extracted_chars} characters")
+                        break
                     
                 except Exception as e:
                     logger.warning(f"Error extracting text from page {page_num}: {str(e)}")
@@ -58,6 +88,7 @@ class SimplePDFExtractor:
                 logger.info(f"Attempting text repair, attempt {attempt + 1}")
                 return self._repair_and_retry(pdf_content, attempt + 1)
             
+            logger.info(f"Text extraction completed: {len(text_content)} characters from {len(sample_pages)} pages")
             return text_content if text_content.strip() else "No text extracted"
             
         except Exception as e:
@@ -133,61 +164,210 @@ class SimplePDFExtractor:
         except Exception as e:
             logger.error(f"Error getting page count: {str(e)}")
             return 0
+    
+    def analyze_pdf_structure(self, pdf_content: bytes) -> Dict[str, Any]:
+        """
+        Analyze PDF structure for complexity determination.
+        Returns detailed analysis including page count, text density, layout complexity.
+        Uses caching for repeated analysis of same content.
+        """
+        # Create content hash for caching
+        content_hash = hashlib.md5(pdf_content).hexdigest()
+        
+        # Check if we've analyzed this content before (simple in-memory cache)
+        if hasattr(self, '_analysis_cache') and content_hash in self._analysis_cache:
+            logger.debug(f"Using cached analysis for PDF hash: {content_hash}")
+            return self._analysis_cache[content_hash]
+        
+        # Initialize cache if it doesn't exist
+        if not hasattr(self, '_analysis_cache'):
+            self._analysis_cache = {}
+        
+        try:
+            pdf_document = fitz.open(stream=pdf_content, filetype="pdf")
+            
+            analysis = {
+                'page_count': pdf_document.page_count,
+                'file_size_kb': len(pdf_content) / 1024,
+                'has_metadata': bool(pdf_document.metadata),
+                'text_density': 0,
+                'layout_complexity': 'simple',
+                'has_images': False,
+                'has_forms': False,
+                'font_count': 0,
+                'avg_text_per_page': 0,
+                'is_searchable': True,
+                'extraction_confidence': 0.9
+            }
+            
+            total_text_length = 0
+            total_blocks = 0
+            unique_fonts = set()
+            has_complex_layout = False
+            
+            # Analyze first few pages for performance (sample analysis)
+            sample_pages = min(3, pdf_document.page_count)
+            
+            for page_num in range(sample_pages):
+                try:
+                    page = pdf_document.load_page(page_num)
+                    
+                    # Check for images
+                    if not analysis['has_images']:
+                        image_list = page.get_images()
+                        analysis['has_images'] = len(image_list) > 0
+                    
+                    # Check for form fields
+                    if not analysis['has_forms']:
+                        widgets = page.widgets()
+                        analysis['has_forms'] = len(widgets) > 0
+                    
+                    # Analyze text and layout
+                    text_dict = page.get_text("dict")
+                    page_text = page.get_text()
+                    total_text_length += len(page_text)
+                    
+                    # Count blocks and analyze layout complexity
+                    blocks = text_dict.get("blocks", [])
+                    total_blocks += len(blocks)
+                    
+                    # Check for complex layout (multiple columns, tables)
+                    if len(blocks) > 10:  # Many text blocks suggest complex layout
+                        has_complex_layout = True
+                    
+                    # Analyze fonts
+                    for block in blocks:
+                        if "lines" in block:
+                            for line in block["lines"]:
+                                for span in line.get("spans", []):
+                                    font_info = f"{span.get('font', '')}-{span.get('size', 0)}"
+                                    unique_fonts.add(font_info)
+                    
+                    # Check if page is searchable (has selectable text)
+                    if not page_text.strip():
+                        analysis['is_searchable'] = False
+                        analysis['extraction_confidence'] *= 0.7  # Reduce confidence for scanned docs
+                        
+                except Exception as e:
+                    logger.warning(f"Error analyzing page {page_num}: {e}")
+                    continue
+            
+            # Calculate metrics
+            analysis['font_count'] = len(unique_fonts)
+            analysis['avg_text_per_page'] = total_text_length / max(sample_pages, 1)
+            analysis['text_density'] = total_text_length / max(analysis['file_size_kb'], 1)
+            
+            # Determine layout complexity
+            if has_complex_layout or analysis['font_count'] > 5 or analysis['has_images']:
+                analysis['layout_complexity'] = 'complex'
+            elif analysis['font_count'] > 2 or total_blocks > sample_pages * 3:
+                analysis['layout_complexity'] = 'moderate'
+            
+            # Adjust confidence based on analysis
+            if not analysis['is_searchable']:
+                analysis['extraction_confidence'] *= 0.6
+            elif analysis['layout_complexity'] == 'complex':
+                analysis['extraction_confidence'] *= 0.8
+            elif analysis['text_density'] < 10:  # Very low text density
+                analysis['extraction_confidence'] *= 0.7
+            
+            pdf_document.close()
+            
+            # Cache the result (limit cache size to prevent memory issues)
+            if len(self._analysis_cache) > 100:  # Simple cache size limit
+                # Remove oldest entry (FIFO)
+                oldest_key = next(iter(self._analysis_cache))
+                del self._analysis_cache[oldest_key]
+            
+            self._analysis_cache[content_hash] = analysis
+            logger.debug(f"Cached analysis for PDF hash: {content_hash}")
+            
+            return analysis
+            
+        except Exception as e:
+            logger.error(f"Error analyzing PDF structure: {e}")
+            # Return minimal analysis on error
+            error_analysis = {
+                'page_count': 0,
+                'file_size_kb': len(pdf_content) / 1024,
+                'has_metadata': False,
+                'text_density': 0,
+                'layout_complexity': 'unknown',
+                'has_images': False,
+                'has_forms': False,
+                'font_count': 0,
+                'avg_text_per_page': 0,
+                'is_searchable': True,
+                'extraction_confidence': 0.5
+            }
+            # Cache error result too to avoid repeated failures
+            self._analysis_cache[content_hash] = error_analysis
+            return error_analysis
 
 class StructuredExtractor:
     """
     Structured extraction engine that implements LangExtract-like functionality
     using prompt-driven schemas and in-context learning with few-shot examples.
+    Optimized with pre-compiled patterns for better performance.
     """
     
     def __init__(self):
+        # Pre-compile regex patterns for better performance
         self.date_patterns = [
-            r'\b(\d{1,2}[-/]\d{1,2}[-/]\d{4})\b',  # DD/MM/YYYY or DD-MM-YYYY
-            r'\b(\d{4}[-/]\d{1,2}[-/]\d{1,2})\b',  # YYYY/MM/DD or YYYY-MM-DD
-            r'\b(\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{4})\b',  # DD Mon YYYY
-            r'\b(\d{1,2}[./]\d{1,2}[./]\d{2,4})\b',  # DD.MM.YY or DD/MM/YY
+            re.compile(r'\b(\d{1,2}[-/]\d{1,2}[-/]\d{4})\b'),  # DD/MM/YYYY or DD-MM-YYYY
+            re.compile(r'\b(\d{4}[-/]\d{1,2}[-/]\d{1,2})\b'),  # YYYY/MM/DD or YYYY-MM-DD
+            re.compile(r'\b(\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{4})\b', re.IGNORECASE),  # DD Mon YYYY
+            re.compile(r'\b(\d{1,2}[./]\d{1,2}[./]\d{2,4})\b'),  # DD.MM.YY or DD/MM/YY
+            re.compile(r'\b(\d{1,2}(?:st|nd|rd|th)?\s+(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{4})\b', re.IGNORECASE),  # Full month names
         ]
         
         self.money_patterns = [
-            r'\$\s*(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)',  # $1,234.56
-            r'(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)\s*\$',  # 1,234.56$
-            r'\b(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)\b',   # 1,234.56
-            r'[-+]?\s*\$?\s*(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)',  # Handle negative amounts
+            re.compile(r'\$\s*(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)'),  # $1,234.56
+            re.compile(r'(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)\s*\$'),  # 1,234.56$
+            re.compile(r'[-+]?\s*\$?\s*(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)'),  # Handle negative amounts
+            re.compile(r'\b(\d{1,3}(?:,\d{3})*\.\d{2})\b'),   # 1,234.56 (standalone)
+            re.compile(r'(?:AUD|USD|EUR|GBP|CAD)\s*(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)', re.IGNORECASE),  # Currency codes
         ]
         
-        # Few-shot examples for different document types
+        # Enhanced patterns for different document types
         self.rideshare_patterns = [
-            r'trip.*?(\d{1,2}[/\-]\d{1,2}[/\-]\d{2,4}).*?(\$?\d+\.\d{2})',
-            r'fare.*?(\$?\d+\.\d{2})',
-            r'tip.*?(\$?\d+\.\d{2})',
-            r'distance.*?(\d+\.\d+)\s*(mi|km|miles)',
+            re.compile(r'trip.*?(\d{1,2}[/\-]\d{1,2}[/\-]\d{2,4}).*?(\$?\d+\.\d{2})', re.IGNORECASE),
+            re.compile(r'fare.*?(\$?\d+\.\d{2})', re.IGNORECASE),
+            re.compile(r'tip.*?(\$?\d+\.\d{2})', re.IGNORECASE),
+            re.compile(r'distance.*?(\d+\.\d+)\s*(mi|km|miles)', re.IGNORECASE),
+            re.compile(r'earnings.*?(\$?\d+\.\d{2})', re.IGNORECASE),
         ]
         
         self.bank_patterns = [
-            r'(debit|credit|withdrawal|deposit)\s*.*?(\d{1,2}[/\-]\d{1,2}[/\-]\d{2,4}).*?(\$?\d+\.\d{2})',
-            r'balance.*?(\$?\d+\.\d{2})',
-            r'ref(?:erence)?.*?([A-Z0-9]+)',
+            re.compile(r'(debit|credit|withdrawal|deposit)\s*.*?(\d{1,2}[/\-]\d{1,2}[/\-]\d{2,4}).*?(\$?\d+\.\d{2})', re.IGNORECASE),
+            re.compile(r'balance.*?(\$?\d+\.\d{2})', re.IGNORECASE),
+            re.compile(r'ref(?:erence)?.*?([A-Z0-9]+)', re.IGNORECASE),
+            re.compile(r'transaction.*?(\d+)', re.IGNORECASE),
         ]
+        
+        # Enhanced keyword sets for document type detection
+        self.rideshare_keywords = {'uber', 'lyft', 'trip', 'ride', 'driver', 'fare', 'pickup', 'dropoff', 'earnings', 'passenger', 'route'}
+        self.bank_keywords = {'bank', 'statement', 'account', 'balance', 'debit', 'credit', 'deposit', 'withdrawal', 'transaction', 'atm'}
     
     def detect_document_type(self, text: str) -> str:
         """
-        Detect document type using in-context learning approach.
-        This simulates LangExtract's document classification.
+        Detect document type using enhanced keyword analysis.
+        This simulates LangExtract's document classification with better accuracy.
         """
         text_lower = text.lower()
         
-        # Rideshare indicators
-        rideshare_keywords = ['uber', 'lyft', 'trip', 'ride', 'driver', 'fare', 'pickup', 'dropoff', 'earnings']
-        rideshare_score = sum(1 for keyword in rideshare_keywords if keyword in text_lower)
+        # Count keyword matches for each document type
+        rideshare_score = sum(1 for keyword in self.rideshare_keywords if keyword in text_lower)
+        bank_score = sum(1 for keyword in self.bank_keywords if keyword in text_lower)
         
-        # Bank statement indicators  
-        bank_keywords = ['bank', 'statement', 'account', 'balance', 'debit', 'credit', 'deposit', 'withdrawal']
-        bank_score = sum(1 for keyword in bank_keywords if keyword in text_lower)
+        # Weight scores by keyword frequency
+        rideshare_weighted = sum(text_lower.count(keyword) for keyword in self.rideshare_keywords)
+        bank_weighted = sum(text_lower.count(keyword) for keyword in self.bank_keywords)
         
-        # Determine document type based on keyword density
-        if rideshare_score > bank_score and rideshare_score >= 2:
+        # Determine document type based on weighted keyword density
+        if rideshare_weighted > bank_weighted and rideshare_score >= 2:
             return "rideshare"
-        elif bank_score >= 2:
+        elif bank_weighted >= 2 or bank_score >= 3:
             return "bank_statement"
         else:
             return "general"
@@ -237,12 +417,12 @@ class StructuredExtractor:
         )
     
     def _parse_rideshare_line(self, line: str, context_lines: List[str]) -> Optional[RideshareTrip]:
-        """Parse a single rideshare trip using pattern matching"""
+        """Parse a single rideshare trip using improved pattern matching"""
         try:
-            # Extract date
+            # Extract date using pre-compiled patterns
             date_match = None
             for pattern in self.date_patterns:
-                match = re.search(pattern, line)
+                match = pattern.search(line)
                 if match:
                     date_match = self._normalize_date(match.group(1))
                     break
@@ -250,30 +430,51 @@ class StructuredExtractor:
             if not date_match:
                 return None
             
-            # Extract monetary amounts
+            # Extract monetary amounts using pre-compiled patterns
             amounts = []
+            context_text = line + ' '.join(context_lines)
+            
             for pattern in self.money_patterns:
-                matches = re.findall(pattern, line + ' '.join(context_lines))
+                matches = pattern.findall(context_text)
                 for match in matches:
                     try:
-                        amount = float(match.replace(',', '').replace('$', ''))
+                        # Handle both single capture group and multiple groups
+                        amount_str = match if isinstance(match, str) else match[0]
+                        amount = float(amount_str.replace(',', '').replace('$', ''))
                         amounts.append(amount)
-                    except ValueError:
+                    except (ValueError, TypeError):
                         continue
             
             if not amounts:
                 return None
             
-            # Extract trip details (simplified pattern matching)
+            # Extract trip details with improved pattern matching
             fare = amounts[0] if amounts else 0.0
             tips = amounts[1] if len(amounts) > 1 else None
             total_earnings = sum(amounts) if amounts else fare
+            
+            # Try to extract pickup/dropoff locations
+            pickup_location = None
+            dropoff_location = None
+            
+            # Simple location extraction (can be enhanced)
+            location_pattern = re.compile(r'(?:from|pickup|start).*?([A-Za-z\s,]+?)(?:to|dropoff|end|destination)', re.IGNORECASE)
+            location_match = location_pattern.search(context_text)
+            if location_match:
+                pickup_location = location_match.group(1).strip()
+            
+            destination_pattern = re.compile(r'(?:to|dropoff|end|destination).*?([A-Za-z\s,]+?)(?:\n|$)', re.IGNORECASE)
+            dest_match = destination_pattern.search(context_text)
+            if dest_match:
+                dropoff_location = dest_match.group(1).strip()
             
             return RideshareTrip(
                 date=date_match,
                 fare=fare,
                 tips=tips,
-                total_earnings=total_earnings
+                total_earnings=total_earnings,
+                pickup_location=pickup_location,
+                dropoff_location=dropoff_location
             )
             
         except Exception as e:
@@ -310,12 +511,12 @@ class StructuredExtractor:
         )
     
     def _parse_bank_line(self, line: str) -> Optional[BankTransaction]:
-        """Parse a single bank transaction line"""
+        """Parse a single bank transaction line with improved accuracy"""
         try:
-            # Extract date
+            # Extract date using pre-compiled patterns
             date_match = None
             for pattern in self.date_patterns:
-                match = re.search(pattern, line)
+                match = pattern.search(line)
                 if match:
                     date_match = self._normalize_date(match.group(1))
                     break
@@ -323,32 +524,53 @@ class StructuredExtractor:
             if not date_match:
                 return None
             
-            # Extract amounts (distinguish debit/credit)
+            # Extract amounts using pre-compiled patterns
             amounts = []
             for pattern in self.money_patterns:
-                matches = re.findall(pattern, line)
+                matches = pattern.findall(line)
                 for match in matches:
                     try:
-                        amount = float(match.replace(',', '').replace('$', ''))
+                        # Handle both single capture group and multiple groups
+                        amount_str = match if isinstance(match, str) else match[0]
+                        amount = float(amount_str.replace(',', '').replace('$', ''))
                         amounts.append(amount)
-                    except ValueError:
+                    except (ValueError, TypeError):
                         continue
             
             if not amounts:
                 return None
             
-            # Determine if debit or credit based on context
-            is_debit = any(word in line.lower() for word in ['debit', 'withdrawal', 'fee', 'charge'])
-            is_credit = any(word in line.lower() for word in ['credit', 'deposit', 'interest', 'refund'])
+            # Determine if debit or credit based on context with improved detection
+            line_lower = line.lower()
+            is_debit = any(word in line_lower for word in ['debit', 'withdrawal', 'fee', 'charge', 'payment', 'purchase'])
+            is_credit = any(word in line_lower for word in ['credit', 'deposit', 'interest', 'refund', 'transfer in'])
             
-            debit = amounts[0] if is_debit else None
-            credit = amounts[0] if is_credit else None
+            # Check for negative indicators
+            has_negative = '-' in line or 'minus' in line_lower
             
-            # Clean description
+            debit = amounts[0] if is_debit or has_negative else None
+            credit = amounts[0] if is_credit and not has_negative else None
+            
+            # If neither explicitly indicated, use position/context clues
+            if not debit and not credit:
+                # Default to debit if amount appears after certain keywords
+                debit_context = any(word in line_lower for word in ['atm', 'pos', 'transfer out', 'bill'])
+                if debit_context:
+                    debit = amounts[0]
+                else:
+                    credit = amounts[0]  # Default to credit
+            
+            # Clean description by removing dates and amounts
             description = line
-            for pattern in self.date_patterns + self.money_patterns:
-                description = re.sub(pattern, '', description)
+            for pattern in self.date_patterns:
+                description = pattern.sub('', description)
+            for pattern in self.money_patterns:
+                description = pattern.sub('', description)
             description = re.sub(r'\s+', ' ', description).strip()
+            
+            # Remove common prefixes/suffixes
+            description = re.sub(r'^(debit|credit|withdrawal|deposit)\s*', '', description, flags=re.IGNORECASE)
+            description = description.strip()
             
             return BankTransaction(
                 date=date_match,
@@ -362,21 +584,33 @@ class StructuredExtractor:
             return None
     
     def _extract_general_transactions(self, text: str) -> List[RawTransaction]:
-        """Extract general transactions (fallback method)"""
+        """Extract general transactions with improved accuracy and performance"""
         transactions = []
         lines = text.split('\n')
         
         print(f"Processing {len(lines)} lines for general transaction extraction")
         
+        # Pre-filter lines that likely contain transactions (performance optimization)
+        candidate_lines = []
         for i, line in enumerate(lines):
             line = line.strip()
-            if not line:
+            if not line or len(line) < 10:  # Skip very short lines
                 continue
                 
-            # Extract date
+            # Quick check for date patterns (performance optimization)
+            has_date = any(pattern.search(line) for pattern in self.date_patterns[:2])  # Check first 2 patterns only
+            has_amount = any(pattern.search(line) for pattern in self.money_patterns[:3])  # Check first 3 patterns only
+            
+            if has_date and has_amount:
+                candidate_lines.append((i, line))
+        
+        print(f"Found {len(candidate_lines)} candidate transaction lines")
+        
+        for line_num, line in candidate_lines:
+            # Extract date using pre-compiled patterns
             date_match = None
             for pattern in self.date_patterns:
-                match = re.search(pattern, line)
+                match = pattern.search(line)
                 if match:
                     date_match = self._normalize_date(match.group(1))
                     break
@@ -384,25 +618,21 @@ class StructuredExtractor:
             if not date_match:
                 continue
                 
-            print(f"Line {i}: Found date {date_match} in: {line[:100]}")
+            print(f"Line {line_num}: Found date {date_match} in: {line[:100]}")
                 
-            # Extract amount
-            amount = self._extract_amount(line)
-            print(f"Line {i}: Extracted amount {amount}")
+            # Extract amount using improved extraction
+            amount = self._extract_amount_improved(line)
+            print(f"Line {line_num}: Extracted amount {amount}")
             
             if amount == 0.0:
                 # Skip transactions with zero amount
-                print(f"Line {i}: Skipping zero amount transaction")
+                print(f"Line {line_num}: Skipping zero amount transaction")
                 continue
             
-            # Clean description
-            description = line
-            for pattern in self.date_patterns:
-                description = re.sub(pattern, '', description)
-            description = re.sub(r'\$\s*\d{1,3}(?:,\d{3})*(?:\.\d{2})?', '', description)
-            description = re.sub(r'\s+', ' ', description).strip()
+            # Clean description more intelligently
+            description = self._clean_description(line)
             
-            print(f"Line {i}: Cleaned description: '{description}'")
+            print(f"Line {line_num}: Cleaned description: '{description}'")
             
             # Only create transaction if we have a meaningful description
             if description and len(description) > 2:
@@ -412,60 +642,88 @@ class StructuredExtractor:
                     amount=amount
                 )
                 transactions.append(transaction)
-                print(f"Line {i}: Created transaction: {transaction}")
+                print(f"Line {line_num}: Created transaction: {transaction}")
             else:
-                print(f"Line {i}: Skipping transaction with empty/short description")
+                print(f"Line {line_num}: Skipping transaction with empty/short description")
         
         print(f"General extraction completed: {len(transactions)} transactions found")
         return transactions
     
+    def _extract_amount_improved(self, text: str) -> float:
+        """Extract monetary amount with improved patterns and handling"""
+        # Try pre-compiled patterns in order of specificity
+        for pattern in self.money_patterns:
+            matches = pattern.findall(text)
+            if matches:
+                # Handle different match types (single group vs multiple groups)
+                for match in matches:
+                    try:
+                        amount_str = match if isinstance(match, str) else match[0]
+                        amount_str = amount_str.replace(',', '').replace('$', '').strip()
+                        amount = float(amount_str)
+                        
+                        # Handle negative indicators in the text
+                        text_lower = text.lower()
+                        if any(indicator in text_lower for indicator in ['debit', 'withdrawal', 'fee', 'charge', '-']):
+                            amount = -abs(amount)
+                        
+                        return amount
+                    except (ValueError, TypeError, AttributeError):
+                        continue
+        return 0.0
+    
+    def _clean_description(self, line: str) -> str:
+        """Clean transaction description more intelligently"""
+        description = line
+        
+        # Remove dates using pre-compiled patterns
+        for pattern in self.date_patterns:
+            description = pattern.sub('', description)
+        
+        # Remove amounts using pre-compiled patterns
+        for pattern in self.money_patterns:
+            description = pattern.sub('', description)
+        
+        # Remove common transaction prefixes
+        description = re.sub(r'^(transaction|payment|deposit|withdrawal|transfer):\s*', '', description, flags=re.IGNORECASE)
+        
+        # Clean up whitespace
+        description = re.sub(r'\s+', ' ', description).strip()
+        
+        # Remove leading/trailing punctuation
+        description = description.strip('.,;:-')
+        
+        return description
+    
     def _normalize_date(self, date_str: str) -> str:
-        """Normalize date to YYYY-MM-DD format"""
+        """Normalize date to YYYY-MM-DD format with improved parsing"""
         try:
+            # Enhanced format list with more comprehensive patterns
             formats = [
                 '%d/%m/%Y', '%d-%m-%Y', '%m/%d/%Y', '%m-%d-%Y',
                 '%Y/%m/%d', '%Y-%m-%d', '%d.%m.%Y', '%d.%m.%y',
-                '%d %b %Y', '%d %B %Y', '%m/%d/%y', '%d/%m/%y'
+                '%d %b %Y', '%d %B %Y', '%m/%d/%y', '%d/%m/%y',
+                '%d %b, %Y', '%d %B, %Y', '%B %d, %Y', '%b %d, %Y',
+                '%d%b%Y', '%d%B%Y'  # No spaces
             ]
+            
+            date_str = date_str.strip()
+            
+            # Handle ordinal dates (1st, 2nd, 3rd, 4th, etc.)
+            date_str = re.sub(r'(\d+)(?:st|nd|rd|th)', r'\1', date_str, flags=re.IGNORECASE)
             
             for fmt in formats:
                 try:
-                    date_obj = datetime.strptime(date_str.strip(), fmt)
+                    date_obj = datetime.strptime(date_str, fmt)
                     return date_obj.strftime('%Y-%m-%d')
                 except ValueError:
                     continue
             
+            # If no format matches, try parsing with partial matching
             return date_str.strip()
             
         except Exception:
             return date_str.strip()
-    
-    def _extract_amount(self, text: str) -> float:
-        """Extract monetary amount from text"""
-        # Try multiple money patterns
-        patterns = [
-            r'\$\s*(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)',  # $1,234.56
-            r'(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)\s*\$',  # 1,234.56$
-            r'[-+]?\s*\$\s*(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)',  # -$1,234.56 or +$1,234.56
-            r'[-+]?\s*(\d{1,3}(?:,\d{3})*\.\d{2})\b',   # -1,234.56 or +1,234.56
-            r'\b(\d{1,3}(?:,\d{3})*\.\d{2})\b',   # 1,234.56 (standalone)
-            r'\b(\d+\.\d{2})\b',   # Simple decimal like 15.75
-            r'\b(\d+)\.\d{2}\b',   # More flexible decimal matching
-        ]
-        
-        for pattern in patterns:
-            matches = re.findall(pattern, text)
-            if matches:
-                amount_str = matches[0].replace(',', '').replace('$', '').strip()
-                try:
-                    amount = float(amount_str)
-                    # Handle negative indicators in the text
-                    if 'debit' in text.lower() or 'withdrawal' in text.lower() or text.startswith('-'):
-                        amount = -abs(amount)
-                    return amount
-                except ValueError:
-                    continue
-        return 0.0
     
     def _extract_account_number(self, text: str) -> Optional[str]:
         """Extract account number from bank statement"""
