@@ -5,6 +5,7 @@ import base64
 import logging
 from schemas import ExtractionResult, ExtractionRequest, ErrorResponse
 from extractor import LangExtractStyleExtractor
+from performance_utils import performance_monitor, cache_manager, MemoryManager
 import uvicorn
 import os
 from dotenv import load_dotenv
@@ -218,6 +219,28 @@ async def visualize_extraction(request: ExtractionRequest):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to generate visualization: {str(e)}"
         )
+
+@app.get("/admin/performance")
+async def get_performance_metrics():
+    """Admin endpoint for performance metrics and system status"""
+    return {
+        "performance_metrics": performance_monitor.get_metrics(),
+        "cache_stats": cache_manager.get_stats(),
+        "memory_usage": MemoryManager.get_memory_usage(),
+        "service_info": {
+            "version": "2.0.0",
+            "extraction_engine": "LangExtract-style with PyMuPDF",
+            "performance_monitoring": "enabled",
+            "caching": "enabled"
+        }
+    }
+
+@app.post("/admin/clear-cache")
+async def clear_cache():
+    """Admin endpoint to clear all caches"""
+    cache_manager.clear()
+    MemoryManager.cleanup()
+    return {"message": "Cache cleared and memory cleaned up"}
 
 @app.get("/admin/status")
 async def admin_status():

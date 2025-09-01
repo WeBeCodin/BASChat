@@ -9,6 +9,7 @@ from datetime import datetime
 import json
 import hashlib
 from functools import lru_cache
+from performance_utils import monitor_performance, memory_efficient, MemoryManager, cache_manager
 
 logger = logging.getLogger(__name__)
 
@@ -22,10 +23,12 @@ class SimplePDFExtractor:
         self.text_repair_attempts = 3
         self.encoding_fallbacks = ['utf-8', 'latin-1', 'cp1252', 'ascii']
     
+    @monitor_performance("pdf_text_extraction")
     def extract_text_from_pdf(self, pdf_content: bytes, attempt: int = 0) -> str:
         """
         Extract text from PDF bytes using PyMuPDF with robust error handling and repair logic.
         Optimized for speed with early termination and intelligent sampling.
+        Now includes coordinate-based extraction for better accuracy.
         """
         try:
             # Attempt to open PDF from bytes
@@ -56,9 +59,13 @@ class SimplePDFExtractor:
                 try:
                     page = pdf_document.load_page(page_num)
                     
-                    # Try different text extraction methods for robustness
-                    page_text = page.get_text()
+                    # Try coordinate-based extraction first for better accuracy
+                    page_text = self._extract_with_coordinates(page)
                     
+                    # If coordinate extraction fails, fall back to simpler methods
+                    if not page_text.strip():
+                        page_text = page.get_text()
+                        
                     # If no text found, try alternative extraction methods
                     if not page_text.strip():
                         page_text = page.get_text("text")
@@ -83,6 +90,9 @@ class SimplePDFExtractor:
                     
             pdf_document.close()
             
+            # Clean up memory after processing
+            MemoryManager.cleanup()
+            
             # Apply text repair if needed
             if not text_content.strip() and attempt < self.text_repair_attempts:
                 logger.info(f"Attempting text repair, attempt {attempt + 1}")
@@ -99,6 +109,77 @@ class SimplePDFExtractor:
                 return self._repair_and_retry(pdf_content, attempt + 1)
             
             raise ValueError(f"Failed to extract text from PDF after {self.text_repair_attempts} attempts: {str(e)}")
+    
+    def _extract_with_coordinates(self, page) -> str:
+        """
+        Extract text using coordinate-based approach for better layout awareness.
+        This helps preserve spatial relationships and detect tables/columns.
+        """
+        try:
+            # Get text blocks with coordinates
+            blocks = page.get_text("dict")["blocks"]
+            
+            # Sort blocks by vertical position first, then horizontal
+            text_blocks = []
+            for block in blocks:
+                if "lines" in block:
+                    bbox = block.get("bbox", [0, 0, 0, 0])
+                    text_content = ""
+                    for line in block["lines"]:
+                        line_text = ""
+                        for span in line.get("spans", []):
+                            line_text += span.get("text", "") + " "
+                        text_content += line_text.strip() + " "
+                    
+                    if text_content.strip():
+                        text_blocks.append({
+                            'text': text_content.strip(),
+                            'x0': bbox[0], 'y0': bbox[1], 'x1': bbox[2], 'y1': bbox[3]
+                        })
+            
+            # Sort blocks by Y position (top to bottom), then X position (left to right)
+            text_blocks.sort(key=lambda b: (round(b['y0'] / 10), b['x0']))
+            
+            # Group blocks into rows based on Y position
+            rows = []
+            current_row = []
+            last_y = None
+            tolerance = 10  # Y-coordinate tolerance for same row
+            
+            for block in text_blocks:
+                if last_y is None or abs(block['y0'] - last_y) <= tolerance:
+                    current_row.append(block)
+                else:
+                    if current_row:
+                        # Sort current row by X position
+                        current_row.sort(key=lambda b: b['x0'])
+                        rows.append(current_row)
+                    current_row = [block]
+                last_y = block['y0']
+            
+            # Add the last row
+            if current_row:
+                current_row.sort(key=lambda b: b['x0'])
+                rows.append(current_row)
+            
+            # Combine text from rows, preserving spatial layout
+            result_text = ""
+            for row in rows:
+                row_text = ""
+                for block in row:
+                    # Add spacing between columns
+                    if row_text and not row_text.endswith(" "):
+                        row_text += " "
+                    row_text += block['text']
+                
+                if row_text.strip():
+                    result_text += row_text.strip() + "\n"
+            
+            return result_text
+            
+        except Exception as e:
+            logger.debug(f"Coordinate-based extraction failed: {e}")
+            return ""
     
     def _extract_from_blocks(self, blocks: List[Dict]) -> str:
         """Extract text from PDF blocks structure"""
@@ -165,6 +246,7 @@ class SimplePDFExtractor:
             logger.error(f"Error getting page count: {str(e)}")
             return 0
     
+    @monitor_performance("pdf_structure_analysis")
     def analyze_pdf_structure(self, pdf_content: bytes) -> Dict[str, Any]:
         """
         Analyze PDF structure for complexity determination.
@@ -174,14 +256,11 @@ class SimplePDFExtractor:
         # Create content hash for caching
         content_hash = hashlib.md5(pdf_content).hexdigest()
         
-        # Check if we've analyzed this content before (simple in-memory cache)
-        if hasattr(self, '_analysis_cache') and content_hash in self._analysis_cache:
+        # Check if we've analyzed this content before using enhanced cache
+        cached_result = cache_manager.get(f"pdf_analysis_{content_hash}")
+        if cached_result:
             logger.debug(f"Using cached analysis for PDF hash: {content_hash}")
-            return self._analysis_cache[content_hash]
-        
-        # Initialize cache if it doesn't exist
-        if not hasattr(self, '_analysis_cache'):
-            self._analysis_cache = {}
+            return cached_result
         
         try:
             pdf_document = fitz.open(stream=pdf_content, filetype="pdf")
@@ -273,13 +352,8 @@ class SimplePDFExtractor:
             
             pdf_document.close()
             
-            # Cache the result (limit cache size to prevent memory issues)
-            if len(self._analysis_cache) > 100:  # Simple cache size limit
-                # Remove oldest entry (FIFO)
-                oldest_key = next(iter(self._analysis_cache))
-                del self._analysis_cache[oldest_key]
-            
-            self._analysis_cache[content_hash] = analysis
+            # Cache the result using enhanced cache manager
+            cache_manager.put(f"pdf_analysis_{content_hash}", analysis)
             logger.debug(f"Cached analysis for PDF hash: {content_hash}")
             
             return analysis
@@ -301,7 +375,7 @@ class SimplePDFExtractor:
                 'extraction_confidence': 0.5
             }
             # Cache error result too to avoid repeated failures
-            self._analysis_cache[content_hash] = error_analysis
+            cache_manager.put(f"pdf_analysis_{content_hash}", error_analysis)
             return error_analysis
 
 class StructuredExtractor:
@@ -351,10 +425,13 @@ class StructuredExtractor:
     
     def detect_document_type(self, text: str) -> str:
         """
-        Detect document type using enhanced keyword analysis.
+        Detect document type using enhanced keyword analysis and table detection.
         This simulates LangExtract's document classification with better accuracy.
         """
         text_lower = text.lower()
+        
+        # Detect if document contains tables (helps with bank statements)
+        has_tables = self._detect_tables(text)
         
         # Count keyword matches for each document type
         rideshare_score = sum(1 for keyword in self.rideshare_keywords if keyword in text_lower)
@@ -364,6 +441,11 @@ class StructuredExtractor:
         rideshare_weighted = sum(text_lower.count(keyword) for keyword in self.rideshare_keywords)
         bank_weighted = sum(text_lower.count(keyword) for keyword in self.bank_keywords)
         
+        # Boost bank score if tables are detected (common in bank statements)
+        if has_tables:
+            bank_weighted += 5
+            bank_score += 2
+        
         # Determine document type based on weighted keyword density
         if rideshare_weighted > bank_weighted and rideshare_score >= 2:
             return "rideshare"
@@ -372,6 +454,37 @@ class StructuredExtractor:
         else:
             return "general"
     
+    def _detect_tables(self, text: str) -> bool:
+        """
+        Detect if the text contains tabular data.
+        Uses pattern matching to identify table-like structures.
+        """
+        lines = text.split('\n')
+        
+        # Look for patterns that suggest tables
+        table_indicators = 0
+        
+        for line in lines:
+            line = line.strip()
+            if not line:
+                continue
+                
+            # Count lines with multiple spaces/tabs (column separators)
+            if re.search(r'\s{3,}|\t{2,}', line):
+                table_indicators += 1
+            
+            # Count lines with consistent patterns (date + amount + description)
+            if len(re.findall(r'\d+[./\-]\d+[./\-]\d+', line)) >= 1 and len(re.findall(r'\$?\d+\.\d{2}', line)) >= 1:
+                table_indicators += 1
+            
+            # Look for header-like patterns
+            if any(header in line.lower() for header in ['date', 'amount', 'description', 'debit', 'credit', 'balance']):
+                table_indicators += 1
+        
+        # Consider it a table if we have enough indicators
+        return table_indicators >= 3
+    
+    @monitor_performance("structured_data_extraction")
     def extract_structured_data(self, text: str) -> Union[TransactionList, RideshareTaxSummary, List[RawTransaction]]:
         """
         Extract structured data using prompt-driven schemas and few-shot examples.
@@ -584,11 +697,18 @@ class StructuredExtractor:
             return None
     
     def _extract_general_transactions(self, text: str) -> List[RawTransaction]:
-        """Extract general transactions with improved accuracy and performance"""
+        """Extract general transactions with improved accuracy, table detection, and performance"""
         transactions = []
         lines = text.split('\n')
         
         print(f"Processing {len(lines)} lines for general transaction extraction")
+        
+        # Detect if this looks like a table and adjust extraction strategy
+        has_table_structure = self._detect_tables(text)
+        print(f"Table structure detected: {has_table_structure}")
+        
+        if has_table_structure:
+            return self._extract_from_table_structure(lines)
         
         # Pre-filter lines that likely contain transactions (performance optimization)
         candidate_lines = []
@@ -607,47 +727,150 @@ class StructuredExtractor:
         print(f"Found {len(candidate_lines)} candidate transaction lines")
         
         for line_num, line in candidate_lines:
-            # Extract date using pre-compiled patterns
-            date_match = None
-            for pattern in self.date_patterns:
-                match = pattern.search(line)
-                if match:
-                    date_match = self._normalize_date(match.group(1))
-                    break
-            
-            if not date_match:
-                continue
-                
-            print(f"Line {line_num}: Found date {date_match} in: {line[:100]}")
-                
-            # Extract amount using improved extraction
-            amount = self._extract_amount_improved(line)
-            print(f"Line {line_num}: Extracted amount {amount}")
-            
-            if amount == 0.0:
-                # Skip transactions with zero amount
-                print(f"Line {line_num}: Skipping zero amount transaction")
-                continue
-            
-            # Clean description more intelligently
-            description = self._clean_description(line)
-            
-            print(f"Line {line_num}: Cleaned description: '{description}'")
-            
-            # Only create transaction if we have a meaningful description
-            if description and len(description) > 2:
-                transaction = RawTransaction(
-                    date=date_match,
-                    description=description,
-                    amount=amount
-                )
+            transaction = self._parse_transaction_line(line, line_num)
+            if transaction:
                 transactions.append(transaction)
-                print(f"Line {line_num}: Created transaction: {transaction}")
-            else:
-                print(f"Line {line_num}: Skipping transaction with empty/short description")
         
         print(f"General extraction completed: {len(transactions)} transactions found")
         return transactions
+    
+    def _extract_from_table_structure(self, lines: List[str]) -> List[RawTransaction]:
+        """
+        Extract transactions from table-like structures with improved parsing.
+        Uses column detection and positional analysis.
+        """
+        transactions = []
+        
+        # Find potential header row to understand column structure
+        header_row = None
+        date_col = None
+        desc_col = None
+        amount_col = None
+        
+        for i, line in enumerate(lines[:10]):  # Check first 10 lines for header
+            line_lower = line.lower()
+            if any(header in line_lower for header in ['date', 'description', 'amount', 'transaction']):
+                header_row = i
+                # Try to identify column positions
+                if 'date' in line_lower:
+                    date_col = line_lower.find('date')
+                if 'description' in line_lower or 'desc' in line_lower:
+                    desc_col = max(line_lower.find('description'), line_lower.find('desc'))
+                if 'amount' in line_lower:
+                    amount_col = line_lower.find('amount')
+                break
+        
+        print(f"Table analysis: header_row={header_row}, date_col={date_col}, desc_col={desc_col}, amount_col={amount_col}")
+        
+        # Start processing from after header (or from beginning if no header found)
+        start_row = header_row + 1 if header_row is not None else 0
+        
+        for i, line in enumerate(lines[start_row:], start_row):
+            line = line.strip()
+            if not line or len(line) < 10:
+                continue
+            
+            # For table structures, try to parse based on column positions
+            transaction = self._parse_table_row(line, date_col, desc_col, amount_col, i)
+            if transaction:
+                transactions.append(transaction)
+        
+        return transactions
+    
+    def _parse_table_row(self, line: str, date_col: Optional[int], desc_col: Optional[int], 
+                         amount_col: Optional[int], line_num: int) -> Optional[RawTransaction]:
+        """Parse a single row from a table structure"""
+        try:
+            # If we have column positions, try to use them
+            if date_col is not None and desc_col is not None and amount_col is not None:
+                # Split by multiple spaces or tabs to get columns
+                columns = re.split(r'\s{2,}|\t+', line)
+                
+                if len(columns) >= 3:
+                    # Try to map columns to data
+                    date_str = columns[0] if date_col < desc_col else None
+                    desc_str = None
+                    amount_str = None
+                    
+                    # Find the column that looks most like a date
+                    for col in columns:
+                        if any(pattern.search(col) for pattern in self.date_patterns):
+                            date_str = col
+                            break
+                    
+                    # Find the column that looks most like an amount
+                    for col in columns:
+                        if any(pattern.search(col) for pattern in self.money_patterns):
+                            amount_str = col
+                            break
+                    
+                    # Use remaining text as description
+                    remaining_text = line
+                    if date_str:
+                        remaining_text = remaining_text.replace(date_str, '', 1)
+                    if amount_str:
+                        remaining_text = remaining_text.replace(amount_str, '', 1)
+                    desc_str = re.sub(r'\s+', ' ', remaining_text).strip()
+                    
+                    if date_str and amount_str and desc_str:
+                        date_normalized = self._normalize_date(date_str)
+                        amount = self._extract_amount_improved(amount_str)
+                        
+                        if amount != 0.0 and len(desc_str) > 2:
+                            return RawTransaction(
+                                date=date_normalized,
+                                description=desc_str,
+                                amount=amount
+                            )
+            
+            # Fallback to regular line parsing
+            return self._parse_transaction_line(line, line_num)
+            
+        except Exception as e:
+            logger.debug(f"Error parsing table row: {e}")
+            return None
+    
+    def _parse_transaction_line(self, line: str, line_num: int) -> Optional[RawTransaction]:
+        """Parse a single transaction line with enhanced accuracy"""
+        # Extract date using pre-compiled patterns
+        date_match = None
+        for pattern in self.date_patterns:
+            match = pattern.search(line)
+            if match:
+                date_match = self._normalize_date(match.group(1))
+                break
+        
+        if not date_match:
+            return None
+            
+        print(f"Line {line_num}: Found date {date_match} in: {line[:100]}")
+            
+        # Extract amount using improved extraction
+        amount = self._extract_amount_improved(line)
+        print(f"Line {line_num}: Extracted amount {amount}")
+        
+        if amount == 0.0:
+            # Skip transactions with zero amount
+            print(f"Line {line_num}: Skipping zero amount transaction")
+            return None
+        
+        # Clean description more intelligently
+        description = self._clean_description(line)
+        
+        print(f"Line {line_num}: Cleaned description: '{description}'")
+        
+        # Only create transaction if we have a meaningful description
+        if description and len(description) > 2:
+            transaction = RawTransaction(
+                date=date_match,
+                description=description,
+                amount=amount
+            )
+            print(f"Line {line_num}: Created transaction: {transaction}")
+            return transaction
+        else:
+            print(f"Line {line_num}: Skipping transaction with empty/short description")
+            return None
     
     def _extract_amount_improved(self, text: str) -> float:
         """Extract monetary amount with improved patterns and handling"""
@@ -847,17 +1070,22 @@ class LangExtractStyleExtractor:
         self.pdf_extractor = SimplePDFExtractor()  # This refers to the PDF-only extractor defined above
         self.structured_extractor = StructuredExtractor()
     
+    @monitor_performance("full_pdf_extraction")
     def extract_from_base64(self, base64_content: str) -> ExtractionResult:
         """
         Extract transactions from base64 encoded PDF using the new LangExtract-style approach.
+        Enhanced with quality validation and confidence scoring.
         """
         try:
             # Decode base64 content
             pdf_content = base64.b64decode(base64_content)
             
+            # Get PDF analysis for quality metrics
+            pdf_analysis = self.pdf_extractor.analyze_pdf_structure(pdf_content)
+            
             # Extract text with robust error handling
             text_content = self.pdf_extractor.extract_text_from_pdf(pdf_content)
-            page_count = self.pdf_extractor.get_page_count(pdf_content)
+            page_count = pdf_analysis['page_count']
             
             # Debug: Log extracted text sample
             print(f"Extracted text length: {len(text_content)} characters")
@@ -879,15 +1107,95 @@ class LangExtractStyleExtractor:
             if transactions:
                 print(f"Sample transaction: date={transactions[0].date}, desc='{transactions[0].description}', amount={transactions[0].amount}")
             
-            return ExtractionResult(
+            # Calculate quality metrics
+            quality_metrics = self._calculate_extraction_quality(transactions, text_content, pdf_analysis)
+            
+            result = ExtractionResult(
                 transactions=transactions,
                 page_count=page_count,
-                transaction_count=len(transactions)
+                transaction_count=len(transactions),
+                extraction_confidence=quality_metrics['overall_confidence'],
+                quality_metrics=quality_metrics
             )
+            
+            print(f"Extraction quality: {quality_metrics}")
+            return result
             
         except Exception as e:
             logger.error(f"Error in LangExtract-style PDF extraction: {str(e)}")
             raise ValueError(f"Failed to extract data from PDF: {str(e)}")
+    
+    def _calculate_extraction_quality(self, transactions: List[RawTransaction], 
+                                    text_content: str, pdf_analysis: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Calculate comprehensive quality metrics for the extraction.
+        """
+        if not transactions:
+            return {
+                'overall_confidence': 0.1,
+                'data_completeness': 0.0,
+                'date_validity': 0.0,
+                'amount_validity': 0.0,
+                'description_quality': 0.0,
+                'consistency_score': 0.0
+            }
+        
+        # Data completeness score
+        total_fields = len(transactions) * 3  # date, description, amount
+        filled_fields = sum([
+            1 if t.date else 0,
+            1 if t.description and len(t.description) > 2 else 0,
+            1 if t.amount != 0.0 else 0
+        ] for t in transactions) * 3
+        
+        data_completeness = filled_fields / total_fields if total_fields > 0 else 0
+        
+        # Date validity score
+        valid_dates = 0
+        for transaction in transactions:
+            try:
+                # Check if date can be parsed
+                datetime.strptime(transaction.date, '%Y-%m-%d')
+                valid_dates += 1
+            except:
+                pass
+        date_validity = valid_dates / len(transactions) if transactions else 0
+        
+        # Amount validity score (check for reasonable amounts)
+        valid_amounts = sum(1 for t in transactions if -1000000 <= t.amount <= 1000000 and t.amount != 0)
+        amount_validity = valid_amounts / len(transactions) if transactions else 0
+        
+        # Description quality score
+        quality_descriptions = sum(1 for t in transactions 
+                                 if t.description and len(t.description) > 5 and 
+                                 not t.description.lower().startswith(('unknown', 'n/a', 'none')))
+        description_quality = quality_descriptions / len(transactions) if transactions else 0
+        
+        # Consistency score (check for duplicate/similar transactions)
+        unique_transactions = len(set((t.date, t.description[:20], round(t.amount, 2)) for t in transactions))
+        consistency_score = unique_transactions / len(transactions) if transactions else 0
+        
+        # Calculate overall confidence
+        base_confidence = pdf_analysis.get('extraction_confidence', 0.5)
+        
+        overall_confidence = (
+            base_confidence * 0.3 +
+            data_completeness * 0.2 +
+            date_validity * 0.2 +
+            amount_validity * 0.15 +
+            description_quality * 0.1 +
+            consistency_score * 0.05
+        )
+        
+        return {
+            'overall_confidence': round(overall_confidence, 3),
+            'data_completeness': round(data_completeness, 3),
+            'date_validity': round(date_validity, 3),
+            'amount_validity': round(amount_validity, 3),
+            'description_quality': round(description_quality, 3),
+            'consistency_score': round(consistency_score, 3),
+            'pdf_analysis': pdf_analysis
+        }
     
     def extract_structured(self, base64_content: str) -> Union[TransactionList, RideshareTaxSummary]:
         """
