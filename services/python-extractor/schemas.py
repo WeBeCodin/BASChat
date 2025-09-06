@@ -9,10 +9,12 @@ class RawTransaction(BaseModel):
     amount: float = Field(..., description="The amount of the transaction")
 
 class ExtractionResult(BaseModel):
-    """Result of PDF extraction"""
+    """Result of PDF extraction with enhanced quality metrics"""
     transactions: List[RawTransaction] = Field(..., description="List of extracted transactions")
     page_count: int = Field(..., description="Total number of pages in the document")
     transaction_count: int = Field(..., description="Total number of transactions found")
+    extraction_confidence: Optional[float] = Field(None, description="Overall confidence score (0.0-1.0)")
+    quality_metrics: Optional[dict] = Field(None, description="Detailed quality metrics for the extraction")
     
 class ExtractionRequest(BaseModel):
     """Request for PDF extraction"""

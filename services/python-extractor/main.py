@@ -5,6 +5,7 @@ import base64
 import logging
 from schemas import ExtractionResult, ExtractionRequest, ErrorResponse
 from extractor import LangExtractStyleExtractor
+from performance_utils import performance_monitor, cache_manager, MemoryManager
 import uvicorn
 import os
 from dotenv import load_dotenv
@@ -49,6 +50,40 @@ async def root():
 async def health_check():
     """Health check endpoint"""
     return {"status": "healthy", "service": "pdf-extractor", "version": "2.0.0"}
+
+@app.post("/analyze-pdf")
+async def analyze_pdf_structure(request: ExtractionRequest):
+    """
+    Analyze PDF structure for routing decisions.
+    Returns detailed analysis including page count, complexity, and confidence.
+    """
+    try:
+        # Validate base64 content
+        try:
+            pdf_content = base64.b64decode(request.file_content)
+            if len(pdf_content) == 0:
+                raise ValueError("Empty file content")
+        except Exception:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid base64 content"
+            )
+        
+        # Analyze PDF structure using our enhanced analyzer
+        analysis = extractor.pdf_extractor.analyze_pdf_structure(pdf_content)
+        
+        logger.info(f"PDF analysis completed: {analysis['page_count']} pages, {analysis['layout_complexity']} complexity")
+        
+        return analysis
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"PDF analysis error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to analyze PDF: {str(e)}"
+        )
 
 @app.post("/extract", response_model=ExtractionResult)
 async def extract_transactions(file: UploadFile = File(...)):
@@ -184,6 +219,28 @@ async def visualize_extraction(request: ExtractionRequest):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to generate visualization: {str(e)}"
         )
+
+@app.get("/admin/performance")
+async def get_performance_metrics():
+    """Admin endpoint for performance metrics and system status"""
+    return {
+        "performance_metrics": performance_monitor.get_metrics(),
+        "cache_stats": cache_manager.get_stats(),
+        "memory_usage": MemoryManager.get_memory_usage(),
+        "service_info": {
+            "version": "2.0.0",
+            "extraction_engine": "LangExtract-style with PyMuPDF",
+            "performance_monitoring": "enabled",
+            "caching": "enabled"
+        }
+    }
+
+@app.post("/admin/clear-cache")
+async def clear_cache():
+    """Admin endpoint to clear all caches"""
+    cache_manager.clear()
+    MemoryManager.cleanup()
+    return {"message": "Cache cleared and memory cleaned up"}
 
 @app.get("/admin/status")
 async def admin_status():

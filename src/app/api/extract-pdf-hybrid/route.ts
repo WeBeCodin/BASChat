@@ -56,27 +56,55 @@ function logExtractionEvent(event: {
 }
 
 // Analyze PDF to determine page count and complexity
-async function analyzePdf(fileBuffer: ArrayBuffer): Promise<{ pageCount: number; isComplex: boolean }> {
+async function analyzePdf(fileBuffer: ArrayBuffer): Promise<{ pageCount: number; isComplex: boolean; confidence: number }> {
   try {
-    // For now, we'll use a simple heuristic based on file size
-    // In a production environment, you might want to use a proper PDF library
-    const fileSizeKB = fileBuffer.byteLength / 1024;
+    // Convert to base64 for Python service analysis
+    const base64Content = Buffer.from(fileBuffer).toString('base64');
     
-    // Estimate page count based on file size (rough heuristic)
-    const estimatedPageCount = Math.max(1, Math.floor(fileSizeKB / 50)); // ~50KB per page average
-    
-    // Consider it complex if it's likely multi-page or very large
-    const isComplex = estimatedPageCount > CONFIG.pageLimit || fileSizeKB > 500;
-    
-    return {
-      pageCount: estimatedPageCount,
-      isComplex
-    };
+    // Call Python service for detailed PDF analysis
+    const response = await fetch(`${CONFIG.langExtractUrl}/analyze-pdf`, {
+      method: "POST",
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ file_content: base64Content }),
+      signal: AbortSignal.timeout(10000), // 10 second timeout for analysis
+    });
+
+    if (response.ok) {
+      const analysis = await response.json();
+      console.log('[HYBRID] PDF Analysis:', analysis);
+      
+      // Determine complexity based on detailed analysis
+      const isComplex = 
+        analysis.page_count > CONFIG.pageLimit ||
+        analysis.layout_complexity === 'complex' ||
+        analysis.has_forms ||
+        !analysis.is_searchable ||
+        analysis.extraction_confidence < 0.7;
+      
+      return {
+        pageCount: analysis.page_count,
+        isComplex,
+        confidence: analysis.extraction_confidence
+      };
+    } else {
+      console.warn('[HYBRID] PDF analysis service unavailable, falling back to heuristics');
+    }
   } catch (error) {
-    console.error('PDF analysis error:', error);
-    // Default to complex to use Vertex AI if analysis fails
-    return { pageCount: 2, isComplex: true };
+    console.warn('[HYBRID] PDF analysis failed, using heuristics:', error);
   }
+  
+  // Fallback to original heuristic method
+  const fileSizeKB = fileBuffer.byteLength / 1024;
+  const estimatedPageCount = Math.max(1, Math.floor(fileSizeKB / 50)); // ~50KB per page average
+  const isComplex = estimatedPageCount > CONFIG.pageLimit || fileSizeKB > 500;
+  
+  return {
+    pageCount: estimatedPageCount,
+    isComplex,
+    confidence: 0.6 // Lower confidence for heuristic analysis
+  };
 }
 
 // Python/PyMuPDF extractor
@@ -220,15 +248,15 @@ async function extractWithVertexAI(file: File): Promise<ExtractorResponse> {
 // Main hybrid extraction function
 async function hybridExtract(file: File): Promise<ExtractionResult> {
   const fileBuffer = await file.arrayBuffer();
-  const { pageCount, isComplex } = await analyzePdf(fileBuffer);
+  const { pageCount, isComplex, confidence } = await analyzePdf(fileBuffer);
   
-  console.log(`[HYBRID] File: ${file.name}, Estimated pages: ${pageCount}, Complex: ${isComplex}, Threshold: ${CONFIG.pageLimit}`);
+  console.log(`[HYBRID] File: ${file.name}, Pages: ${pageCount}, Complex: ${isComplex}, Confidence: ${confidence}, Threshold: ${CONFIG.pageLimit}`);
 
-  // Routing logic: Use Python for simple, single-page documents
-  const usePython = !isComplex && pageCount <= CONFIG.pageLimit;
+  // Routing logic: Use Python for simple, single-page documents with high confidence
+  const usePython = !isComplex && pageCount <= CONFIG.pageLimit && confidence > 0.7;
   
   if (usePython) {
-    console.log('[HYBRID] Routing to Python/PyMuPDF extractor');
+    console.log('[HYBRID] Routing to Python/PyMuPDF extractor (high confidence, simple document)');
     const pythonResult = await extractWithPython(file);
     
     if (pythonResult.success) {
@@ -246,7 +274,7 @@ async function hybridExtract(file: File): Promise<ExtractionResult> {
     // Both failed
     throw new Error(`Both extractors failed. Python: ${pythonResult.error}, Vertex AI: ${vertexResult.error}`);
   } else {
-    console.log('[HYBRID] Routing to Vertex AI extractor for multi-page/complex document');
+    console.log('[HYBRID] Routing to Vertex AI extractor for multi-page/complex document or low confidence');
     const vertexResult = await extractWithVertexAI(file);
     
     if (vertexResult.success) {
