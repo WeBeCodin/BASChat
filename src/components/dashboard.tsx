@@ -846,7 +846,9 @@ export default function Dashboard() {
           });
 
           if (!categorizationResponse.ok) {
-            throw new Error(`HTTP error! status: ${categorizationResponse.status}`);
+            const errorData = await categorizationResponse.json();
+            const errorMessage = errorData.errorDetails || errorData.error || `HTTP error! status: ${categorizationResponse.status}`;
+            throw new Error(errorMessage);
           }
 
           const categorizationResult = await categorizationResponse.json();
@@ -956,7 +958,9 @@ export default function Dashboard() {
       });
 
       if (!categorizationResponse.ok) {
-        throw new Error(`HTTP error! status: ${categorizationResponse.status}`);
+        const errorData = await categorizationResponse.json();
+        const errorMessage = errorData.errorDetails || errorData.error || `HTTP error! status: ${categorizationResponse.status}`;
+        throw new Error(errorMessage);
       }
 
       setCategorizationProgress(70);
@@ -1049,10 +1053,26 @@ export default function Dashboard() {
       console.error("Error categorizing transactions:", error);
       setCategorizationProgress(0);
       setCategorizationStatus("");
+      
+      // Provide more specific error messages
+      let errorTitle = "Categorization Failed";
+      let errorDescription = "Could not categorize the financial data.";
+      
+      if (error instanceof Error) {
+        if (error.message.includes("GOOGLE_GENAI_API_KEY")) {
+          errorTitle = "API Key Missing";
+          errorDescription = "Google AI API key is not configured. Please check your .env.local file.";
+        } else if (error.message.includes("API")) {
+          errorDescription = `API Error: ${error.message}`;
+        } else {
+          errorDescription = error.message;
+        }
+      }
+      
       toast({
         variant: "destructive",
-        title: "Categorization Failed",
-        description: "Could not categorize the financial data.",
+        title: errorTitle,
+        description: errorDescription,
       });
       setStep("selecting_industry");
     }
@@ -1089,7 +1109,9 @@ export default function Dashboard() {
       });
 
       if (!categorizationResponse.ok) {
-        throw new Error(`HTTP error! status: ${categorizationResponse.status}`);
+        const errorData = await categorizationResponse.json();
+        const errorMessage = errorData.errorDetails || errorData.error || `HTTP error! status: ${categorizationResponse.status}`;
+        throw new Error(errorMessage);
       }
 
       const result = await categorizationResponse.json();
